@@ -49,7 +49,7 @@ class Parser:
                     raise json.decoder.JSONDecodeError("Not a dictionary", "", 0)
             except json.decoder.JSONDecodeError:
                 data = {}
-        print(data)
+        #print(data)
 
         tables = camelot.read_pdf(filename_pdf, line_scale=80, copy_text=['v', 'h'], pages='all')
         for page in tables:

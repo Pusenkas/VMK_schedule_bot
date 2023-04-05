@@ -3,6 +3,7 @@
 
 import camelot
 import json
+import shlex
 
 
 class Lesson:
@@ -32,7 +33,7 @@ class NormalLesson(Lesson):
         self.description = description
 
     def __str__(self) -> str:
-        return f"0 {self.CODE} {self.start_time} {self.end_time} {self.description}"
+        return f"{self.CODE} {self.start_time} {self.end_time} '{self.description}'"
 
 
 class DoubleLesson(Lesson):
@@ -53,7 +54,7 @@ class DoubleLesson(Lesson):
         self.description_down = description_down
 
     def __str__(self) -> str:
-        return f"1 {self.CODE} {self.start_time} {self.end_time} {self.description_up} {self.description_down}"
+        return f"{self.CODE} {self.start_time} {self.end_time} '{self.description_up}' '{self.description_down}'"
 
 
 class Parser:
@@ -78,7 +79,6 @@ class Parser:
                     raise json.decoder.JSONDecodeError("Not a dictionary", "", 0)
             except json.decoder.JSONDecodeError:
                 data = {}
-        # print(data)
 
         tables = camelot.read_pdf(filename_pdf, line_scale=80, copy_text=['v', 'h'], pages='all')
         for page in tables:
@@ -93,7 +93,7 @@ class Parser:
                     case [week_day] if week_day in Parser.WEEKDAYS:
                         if not group_number_filled:
                             data |= {group_number:
-                                     {day: [] for day in Parser.WEEKDAYS} for group_number in df.loc[i, 1:]}
+                                         {day: [] for day in Parser.WEEKDAYS} for group_number in df.loc[i, 1:]}
                             groups = [group_number for group_number in df.loc[i, 1:]]
                             group_number_filled = True
                         current_weekday = week_day
@@ -136,14 +136,55 @@ class Parser:
                 print(*data[grn][day], sep="\n")
 
     @staticmethod
-    def get_lesson_from_json(filename_json: str, group_number: str) -> dict:
-        """
+    def get_schedule_week(filename_json: str, group_number: str, odd_week: bool) -> str:
+        """Return schedule of chosen group on week
+
         Args:
             filename_json (str): name of json file with schedule data
             group_number (str): group number
+            odd_week (bool): is current week odd or even?
         Returns:
-            dict: data in json file that corresponds to group_number parameter
+            str: schedule on day in pretty text format
         """
         with open(filename_json, "r") as f:
-            data = json.load(f)
-            return data[group_number]
+            data = json.load(f)[group_number]
+            res = ""
+            for weekday in data:
+                res += weekday + "\n"
+                res += Parser.get_schedule_day(filename_json, group_number, odd_week, weekday)
+            return res
+
+    @staticmethod
+    def get_schedule_day(filename_json: str, group_number: str, odd_week: bool, day: str) -> str:
+        """Return schedule of chosen group on  day
+
+        Args:
+            filename_json (str): name of json file with schedule data
+            group_number (str): group number
+            odd_week (bool): is current week odd or even?
+            day (str): day of the week
+        Returns:
+            str: schedule on day in pretty text format
+        """
+        with open(filename_json, "r") as f:
+            data = json.load(f)[group_number][day]
+            res = ""
+            for i, lesson in enumerate(data, 1):
+                match shlex.split(lesson):
+                    case [NormalLesson.CODE, start_time, end_time, description]:
+                        res += Parser._pretty_lesson_str(i, start_time, end_time, description)
+                    case [DoubleLesson.CODE, start_time, end_time, _, description] if odd_week:
+                        res += Parser._pretty_lesson_str(i, start_time, end_time, description)
+                    case [DoubleLesson.CODE, start_time, end_time, description, _] if not odd_week:
+                        res += Parser._pretty_lesson_str(i, start_time, end_time, description)
+                    case _:
+                        pass
+            return res
+
+    @staticmethod
+    def _pretty_lesson_str(i: int, start_time: str, end_time: str, description: str):
+        """Used for string formatting"""
+        if description:
+            description = " ".join(description.replace('\n', ' ').split())
+            return f"{i}) ({start_time}-{end_time}) {description}\n"
+        return ""

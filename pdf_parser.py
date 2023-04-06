@@ -62,6 +62,10 @@ class Parser:
     WEEKDAYS = ("Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота")
 
     @staticmethod
+    def number_to_weekday(i: int) -> str:
+        return Parser.WEEKDAYS[i]
+
+    @staticmethod
     def pdf_to_json(filename_pdf: str, filename_json: str) -> None:
         """Static method that transform given pdf table into json and store it into the file
 
@@ -85,11 +89,10 @@ class Parser:
             df = page.df
             if df.iloc[0, -1] in Parser.WEEKDAYS:  # removing double dates
                 df = df.iloc[:, :-1]
-
             i, group_number_filled = 0, False
             current_weekday, groups = None, None
             while i < df.shape[0]:
-                match df[0][i].split():
+                match df[0][i].split("-"):
                     case [week_day] if week_day in Parser.WEEKDAYS:
                         if not group_number_filled:
                             data |= {group_number:
@@ -97,7 +100,7 @@ class Parser:
                             groups = [group_number for group_number in df.loc[i, 1:]]
                             group_number_filled = True
                         current_weekday = week_day
-                    case [start_time, "-", end_time]:
+                    case [start_time, end_time]:
                         if i + 1 < df.shape[0] and df[0][i] == df[0][i + 1]:
                             for group_number, lesson_up, lesson_down in zip(groups, df.loc[i, 1:], df.loc[i + 1, 1:]):
                                 if lesson_up == lesson_down:
@@ -106,6 +109,7 @@ class Parser:
                                 else:
                                     data[group_number][current_weekday].append(
                                         DoubleLesson(start_time, end_time, lesson_up, lesson_down))
+                            i += 1
                         else:
                             for group_number, lesson in zip(groups, df.loc[i, 1:]):
                                 data[group_number][current_weekday].append(NormalLesson(start_time, end_time, lesson))
@@ -136,7 +140,7 @@ class Parser:
                 print(*data[grn][day], sep="\n")
 
     @staticmethod
-    def get_schedule_week(filename_json: str, group_number: str, odd_week: bool) -> str:
+    def get_schedule_week(filename_json: str, group_number: str, odd_week: bool) -> tuple[str, bool]:
         """Return schedule of chosen group on week
 
         Args:
@@ -144,18 +148,21 @@ class Parser:
             group_number (str): group number
             odd_week (bool): is current week odd or even?
         Returns:
-            str: schedule on day in pretty text format
+            (str): schedule on week in pretty text format
+            (bool): is positive result
         """
         with open(filename_json, "r") as f:
-            data = json.load(f)[group_number]
+            data = json.load(f)
+            if group_number not in data:
+                return "", False
+            data = data[group_number]
             res = ""
             for weekday in data:
-                res += weekday + "\n"
-                res += Parser.get_schedule_day(filename_json, group_number, odd_week, weekday)
-            return res
+                res += Parser.get_schedule_day(filename_json, group_number, odd_week, weekday)[0]
+            return res, True
 
     @staticmethod
-    def get_schedule_day(filename_json: str, group_number: str, odd_week: bool, day: str) -> str:
+    def get_schedule_day(filename_json: str, group_number: str, odd_week: bool, day: str) -> tuple[str, bool]:
         """Return schedule of chosen group on  day
 
         Args:
@@ -164,11 +171,15 @@ class Parser:
             odd_week (bool): is current week odd or even?
             day (str): day of the week
         Returns:
-            str: schedule on day in pretty text format
+            (str): schedule on day in pretty text format
+            (bool): is positive result
         """
         with open(filename_json, "r") as f:
-            data = json.load(f)[group_number][day]
-            res = ""
+            data = json.load(f)
+            if group_number not in data:
+                return "", False
+            data = data[group_number][day]
+            res = f"<b>{day}</b>\n"
             for i, lesson in enumerate(data, 1):
                 match shlex.split(lesson):
                     case [NormalLesson.CODE, start_time, end_time, description]:
@@ -179,7 +190,7 @@ class Parser:
                         res += Parser._pretty_lesson_str(i, start_time, end_time, description)
                     case _:
                         pass
-            return res
+            return res, True
 
     @staticmethod
     def _pretty_lesson_str(i: int, start_time: str, end_time: str, description: str):

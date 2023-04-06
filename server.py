@@ -4,9 +4,11 @@ from keyboards import *
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import StatesGroup, State
-from database import db_connect, add_user, edit_user_group, edit_user_state, get_user_state
+import database as db
 from aiogram.dispatcher.middlewares import BaseMiddleware
-
+from pdf_parser import Parser
+import glob
+import datetime
 
 bot = Bot(TOKEN)
 storage = MemoryStorage()
@@ -14,7 +16,6 @@ dp = Dispatcher(bot, storage=storage)
 
 
 class StudentGroupState(StatesGroup):
-
     processing = State()
     group_number = State()
     option_processing = State()
@@ -23,13 +24,13 @@ class StudentGroupState(StatesGroup):
     dump = State()
 
     STATES = {
-              'processing': processing, 
-              'group_number': group_number,
-              'option_processing': option_processing,
-              'today_schedule': today_schedule,
-              'week_schedule': week_schedule,
-              'dump': dump
-             }
+        'processing': processing,
+        'group_number': group_number,
+        'option_processing': option_processing,
+        'today_schedule': today_schedule,
+        'week_schedule': week_schedule,
+        'dump': dump
+    }
 
 
 class StateMiddleware(BaseMiddleware):
@@ -37,13 +38,13 @@ class StateMiddleware(BaseMiddleware):
     async def on_pre_process_message(self, message: types.Message, data: dict) -> None:
         username = message.from_user.username
         setattr(StudentGroupState, 'username', username)
-        user_state = await get_user_state(username)
+        user_state = await db.get_user_state(username)
         cur_state = StudentGroupState.STATES[user_state]
         await cur_state.set()
 
 
 async def on_startup(_) -> None:
-    await db_connect()
+    await db.db_connect()
     print('Bot has been started')
 
 
@@ -51,8 +52,8 @@ async def set_state(state: FSMContext, new_state: str) -> None:
     async with state.proxy() as data:
         data['state'] = new_state
         username = StudentGroupState.username
-        
-    await edit_user_state(state, username)
+
+    await db.edit_user_state(state, username)
     await StudentGroupState.STATES[new_state].set()
 
 
@@ -69,7 +70,7 @@ async def cmd_start(message: types.Message, state: FSMContext) -> None:
                                 'Я бот, отправляющий расписание ВМК',
                            reply_markup=get_start_kb())
 
-    await add_user(username=message.from_user.username)
+    await db.add_user(username=message.from_user.username)
     await set_state(state, 'processing')
 
 
@@ -81,8 +82,8 @@ async def cmd_help(message: types.Message) -> None:
                                 '/schedule - получить расписание')
 
 
-@dp.message_handler(commands=['schedule'], state=[StudentGroupState.group_number, 
-                                                  StudentGroupState.option_processing, 
+@dp.message_handler(commands=['schedule'], state=[StudentGroupState.group_number,
+                                                  StudentGroupState.option_processing,
                                                   StudentGroupState.processing])
 async def handle_schedule_while_number(message: types.Message, state: FSMContext) -> None:
     await cmd_schedule(message, reply_markup=get_start_kb())
@@ -91,17 +92,32 @@ async def handle_schedule_while_number(message: types.Message, state: FSMContext
 
 @dp.message_handler(commands=['today_schedule'], state=StudentGroupState.option_processing)
 async def cmd_today_schedule(message: types.Message, state: FSMContext) -> None:
+    week = datetime.datetime.today().isocalendar()[1]
+    day = datetime.datetime.today().weekday()
+    group_number = await db.get_user_group(message.from_user.username)
+    msg, is_ok = Parser.get_schedule_day("data.json", group_number, week % 2, Parser.number_to_weekday(day))
+    if is_ok:
+        msg = 'Держите ваше расписание на сегодня\n' + msg
+    else:
+        msg = 'Нет расписания для данной группы'
     await bot.send_message(chat_id=message.from_user.id,
-                           text='Держите ваше расписание на сегодня',
+                           text=msg, parse_mode='HTML',
                            reply_markup=get_cancel_kb())
     await set_state(state, 'dump')
 
 
 @dp.message_handler(commands=['week_schedule'], state=StudentGroupState.option_processing)
 async def cmd_week_schedule(message: types.Message, state: FSMContext) -> None:
+    week = datetime.datetime.today().isocalendar()[1]
+    group_number = await db.get_user_group(message.from_user.username)
+    msg, is_ok = Parser.get_schedule_week("data.json", group_number, week % 2)
+    if is_ok:
+        msg = 'Держите ваше расписание на неделю\n' + msg
+    else:
+        msg = 'Нет расписания для данной группы'
     await bot.send_message(chat_id=message.from_user.id,
-                            text='Держите ваше расписание на неделю',
-                            reply_markup=get_cancel_kb())
+                           text=msg, parse_mode='HTML',
+                           reply_markup=get_cancel_kb())
     await set_state(state, 'dump')
 
 
@@ -124,7 +140,7 @@ async def handle_number(message: types.Message, state: FSMContext) -> None:
     async with state.proxy() as data:
         data['group'] = message.text
 
-    await edit_user_group(state, username=message.from_user.username)
+    await db.edit_user_group(state, username=message.from_user.username)
     await bot.send_message(chat_id=message.from_user.id,
                            text='Выберите опцию',
                            reply_markup=get_schedule_option_kb())
@@ -159,7 +175,9 @@ async def handle_message_while_processing(message: types.Message, state: FSMCont
 
 if __name__ == '__main__':
     dp.middleware.setup(StateMiddleware())
-
+    for pdf_table in glob.glob("schedule_tables/*.pdf"):
+        print(f"Getting data from {pdf_table}")
+        Parser.pdf_to_json(pdf_table, "data.json")
     executor.start_polling(dispatcher=dp,
                            skip_updates=True,
                            on_startup=on_startup)

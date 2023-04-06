@@ -52,7 +52,6 @@ async def set_state(state: FSMContext, new_state: str) -> None:
     async with state.proxy() as data:
         data['state'] = new_state
         username = StudentGroupState.username
-
     await db.edit_user_state(state, username)
     await StudentGroupState.STATES[new_state].set()
 

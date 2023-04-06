@@ -12,7 +12,6 @@ Welcome to VMK_schedule_bot's documentation!
 
 .. automodule:: pdf_parser
    :members:
-   :undoc-members:
 
 Indices and tables
 ==================

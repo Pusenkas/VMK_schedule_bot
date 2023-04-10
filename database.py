@@ -17,7 +17,6 @@ class Database:
         self.cur.execute('CREATE TABLE IF NOT EXISTS students(username TEXT PRIMARY KEY, number_group TEXT, state TEXT)')
         self.db.commit()
 
-
     async def add_user(self, username: str) -> None:
         '''
         Method to add a new user
@@ -31,7 +30,6 @@ class Database:
         if not user:
             self.cur.execute('INSERT INTO students VALUES(?, ?, ?)', (username, '', 'processing'))
             self.db.commit()
-
 
     async def edit_user_group(self, state: FSMContext, username: str) -> None:
         '''
@@ -47,7 +45,6 @@ class Database:
             self.cur.execute('UPDATE students SET number_group="{}" WHERE username=="{}"'.format(data['group'], username))
             self.db.commit()
 
-
     async def edit_user_state(self, state: FSMContext, username: str) -> None:
         '''
         Method to edit user's state
@@ -62,7 +59,6 @@ class Database:
             self.cur.execute('UPDATE students SET state="{}" WHERE username=="{}"'.format(data['state'], username))
             self.db.commit()
 
-
     async def get_user_state(self, username: str) -> str:
         '''
         Method to get user's state
@@ -75,4 +71,18 @@ class Database:
         state = self.cur.execute('SELECT state FROM students WHERE username=="{}"'.format(username)).fetchone()
         if not state:
             return 'processing'
+        return state[0]
+
+    async def get_user_group(self, username: str) -> str:
+        '''
+        Method to get user's group
+
+        Args:
+            username (str): username
+        Returns:
+            str
+        '''
+        state = self.cur.execute('SELECT number_group FROM students WHERE username=="{}"'.format(username)).fetchone()
+        if not state:
+            return 'none'
         return state[0]

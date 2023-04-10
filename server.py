@@ -27,22 +27,16 @@ class StudentGroupState(StatesGroup):
     and transitions between them
 
     Args:
-        processing (State): initial
-        group_number (State): user is supposed to input his group's number
-        option_processing (State): user is supposed to choose between today and week schedules
-        final (State): user is supposed to choose between returning to menu (processing state) and
-                      changing the group number
+        processing (State): initial state where user can send group number
+        final (State): user is supposed to choose between returning to menu,
+                      changing the group number or choose to look at today/week schedule
         STATES (dict['str':State]): "map" between string repr of state and its actual mark 
     '''
     processing = State()
-    group_number = State()
-    option_processing = State()
     final = State()
 
     STATES = {
               'processing': processing, 
-              'group_number': group_number,
-              'option_processing': option_processing,
               'final': final
              }
 
@@ -131,7 +125,7 @@ async def set_state(state: FSMContext, new_state: str, message: types.Message) -
     Sets FSM in a specific state
 
     Args:
-        state (FSMContext): significant to open proxy and write state 
+        state (FSMContext): significant to open proxy and write state into it
         new_state (str): string repr of state to be set
         message (types.Message): message of user
     Returns:
@@ -142,21 +136,6 @@ async def set_state(state: FSMContext, new_state: str, message: types.Message) -
         
     await db.edit_user_state(state, message.from_user.username)
     await StudentGroupState.STATES[new_state].set()
-
-
-async def cmd_schedule(message: types.Message, reply_markup: ReplyKeyboardMarkup) -> None:
-    '''
-    Sends schedule message to user
-
-    Args:
-        message (types.Message): message of user
-        reply_markup (ReplyKeyboardMarkup): keyboard to be shown to user
-    Returns:
-        None
-    '''
-    await bot.send_message(chat_id=message.from_user.id,
-                           text='Введите номер вашей учебной группы',
-                           reply_markup=reply_markup)
 
 
 @dp.message_handler(commands=['start'], state='*')
@@ -174,6 +153,9 @@ async def cmd_start(message: types.Message, state: FSMContext) -> None:
     await bot.send_message(chat_id=message.from_user.id,
                            text='Добро пожаловать!\n'
                                 'Я бот, отправляющий расписание ВМК',
+                           reply_markup=Keyboards.get_start_kb())
+    await bot.send_message(chat_id=message.from_user.id,
+                           text='Для получения расписания введите номер вашей учебной группы',
                            reply_markup=Keyboards.get_start_kb())
 
     await db.add_user(message.from_user.username)
@@ -193,35 +175,13 @@ async def cmd_help(message: types.Message) -> None:
     '''
     await bot.send_message(chat_id=message.from_user.id,
                            text='/start - начать работу с ботом\n'
-                                '/help - получить подсказки по командам\n'
-                                '/schedule - получить расписание')
+                                '/help - получить подсказки по командам')
 
 
-@dp.message_handler(commands=['schedule'], state=[StudentGroupState.group_number, 
-                                                  StudentGroupState.option_processing, 
-                                                  StudentGroupState.processing])
-async def handle_schedule_while_number(message: types.Message, state: FSMContext) -> None:
-    '''
-    Handler of command 'schedule' from user in states:
-        1) group number is expected
-        2) today/week schedule option is expected
-        3) initial state
-    Sets user state to group_number and sends him schedule message
-
-    Args:
-        message (types.Message): message from user
-        state (FSMContext): state of user
-    Returns:
-        None
-    '''
-    await cmd_schedule(message, reply_markup=Keyboards.get_start_kb())
-    await set_state(state, 'group_number', message)
-
-
-@dp.message_handler(commands=['today_schedule'], state=StudentGroupState.option_processing)
+@dp.message_handler(commands=['today_schedule'], state=StudentGroupState.final)
 async def cmd_today_schedule(message: types.Message, state: FSMContext) -> None:
     '''
-    Handler of command today_schedule from user in state option_processing
+    Handler of command today_schedule from user in final state
     Sends today's schedule to user
 
     Args:
@@ -233,13 +193,12 @@ async def cmd_today_schedule(message: types.Message, state: FSMContext) -> None:
     await bot.send_message(chat_id=message.from_user.id,
                            text='Держите ваше расписание на сегодня',
                            reply_markup=Keyboards.get_cancel_kb())
-    await set_state(state, 'final', message)
 
 
-@dp.message_handler(commands=['week_schedule'], state=StudentGroupState.option_processing)
+@dp.message_handler(commands=['week_schedule'], state=StudentGroupState.final)
 async def cmd_week_schedule(message: types.Message, state: FSMContext) -> None:
     '''
-    Handler of command week_schedule from user in state option_processing
+    Handler of command week_schedule from user in final state
     Sends week's schedule to user
 
     Args:
@@ -249,15 +208,14 @@ async def cmd_week_schedule(message: types.Message, state: FSMContext) -> None:
         None
     '''
     await bot.send_message(chat_id=message.from_user.id,
-                            text='Держите ваше расписание на неделю',
-                            reply_markup=Keyboards.get_cancel_kb())
-    await set_state(state, 'final', message)
+                           text='Держите ваше расписание на неделю',
+                           reply_markup=Keyboards.get_cancel_kb())
 
 
 @dp.message_handler(commands=['return_to_menu'], state=StudentGroupState.final)
 async def cmd_cancel(message: types.Message, state: FSMContext) -> None:
     '''
-    Handler of command return_to_menu from user in state final
+    Handler of command return_to_menu from user in final state
     Sets FSM to initial state
 
     Args:
@@ -269,31 +227,18 @@ async def cmd_cancel(message: types.Message, state: FSMContext) -> None:
     await bot.send_message(chat_id=message.from_user.id,
                            text='Вы вернулись в главное меню',
                            reply_markup=Keyboards.get_start_kb())
+    await bot.send_message(chat_id=message.from_user.id,
+                           text='Для получения расписания введите номер вашей учебной группы',
+                           reply_markup=Keyboards.get_start_kb())
     await set_state(state, 'processing', message)
 
 
-@dp.message_handler(commands=['change_group_number'], state=StudentGroupState.final)
-async def cmd_change(message: types.Message, state: FSMContext) -> None:
-    '''
-    Handler of command change_group_number from user in state final
-    Sets FSM to group_number state and sends schedule message to user
-
-    Args:
-        message (types.Message): message from user
-        state (FSMContext): state of user
-    Returns:
-        None
-    '''
-    await cmd_schedule(message, reply_markup=Keyboards.get_start_kb())
-    await set_state(state, 'group_number', message)
-
-
-@dp.message_handler(lambda message: message.text.isdigit(), state=StudentGroupState.group_number)
+@dp.message_handler(lambda message: message.text.isdigit(), state=StudentGroupState.processing)
 async def handle_number(message: types.Message, state: FSMContext) -> None:
     '''
-    Handler of group number from user in state group_number
+    Handler of group number from user in initial state
     Stores number in state.proxy, edits database with new group for user,
-    sets FSM to option_processing state and sends Option Keyboard to user
+    sets FSM to final state and sends Option Keyboard to user
 
     Args:
         message (types.Message): message from user
@@ -307,14 +252,14 @@ async def handle_number(message: types.Message, state: FSMContext) -> None:
     await db.edit_user_group(state, username=message.from_user.username)
     await bot.send_message(chat_id=message.from_user.id,
                            text='Выберите опцию',
-                           reply_markup=Keyboards.get_schedule_option_kb())
-    await set_state(state, 'option_processing', message)
+                           reply_markup=Keyboards.get_cancel_kb())
+    await set_state(state, 'final', message)
 
 
-@dp.message_handler(lambda message: not message.text.isdigit(), state=StudentGroupState.group_number)
+@dp.message_handler(lambda message: not message.text.isdigit(), state=StudentGroupState.processing)
 async def handle_wrong_number(message: types.Message, state: FSMContext) -> None:
     '''
-    Handler of wrong group number from user in state group_number
+    Handler of wrong group number from user in initial state
     Replies to user's message notifying that it's a wrong number
 
     Args:
@@ -331,7 +276,7 @@ async def handle_wrong_number(message: types.Message, state: FSMContext) -> None
 @dp.message_handler(state=StudentGroupState.final)
 async def handle_message_while_final(message: types.Message, state: FSMContext) -> None:
     '''
-    Handler of any message from user in state final
+    Handler of any message from user in final state
     Returns message that this is a wrong command and option is needed to be chosen
 
     Args:
@@ -345,26 +290,10 @@ async def handle_message_while_final(message: types.Message, state: FSMContext) 
                            reply_markup=Keyboards.get_cancel_kb())
 
 
-@dp.message_handler(state=StudentGroupState.option_processing)
-async def handle_message_while_opt(message: types.Message, state: FSMContext) -> None:
-    '''
-    Handler of any message from user in state option_processing
-    Returns message notifying user to choose one of the suggested options
-
-    Args:
-        message (types.Message): message from user
-        state (FSMContext): state of user
-    Returns:
-        None
-    '''
-    await message.reply(text='Выберите одну из предложенных опций',
-                        reply_markup=Keyboards.get_schedule_option_kb())
-
-
 @dp.message_handler(state=StudentGroupState.processing)
 async def handle_message_while_processing(message: types.Message, state: FSMContext) -> None:
     '''
-    Handler of any message from user in state processing
+    Handler of any message from user in initial state
     Replies that this is a wrong command and suggested option was expected
 
     Args:

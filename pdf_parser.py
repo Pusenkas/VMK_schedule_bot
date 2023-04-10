@@ -84,7 +84,7 @@ class Parser:
             except json.decoder.JSONDecodeError:
                 data = {}
 
-        tables = camelot.read_pdf(filename_pdf, line_scale=80, copy_text=['v', 'h'], pages='all')
+        tables = camelot.read_pdf(filename_pdf, line_scale=100, copy_text=['v', 'h'], pages='all')
         for page in tables:
             df = page.df
             if df.iloc[0, -1] in Parser.WEEKDAYS:  # removing double dates

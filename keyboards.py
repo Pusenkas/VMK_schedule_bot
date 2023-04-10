@@ -17,22 +17,7 @@ class Keyboards:
             ReplyKeyboardMarkup
         '''
         kb = ReplyKeyboardMarkup(keyboard=[
-            [KeyboardButton('/help'),
-             KeyboardButton('/schedule')]
-        ], resize_keyboard=True)
-        return kb
-
-    @staticmethod
-    def get_schedule_option_kb() -> ReplyKeyboardMarkup:
-        '''
-        Returns option keyboard for option_processing state
-
-        Returns:
-            ReplyKeyboardMarkup
-        '''
-        kb = ReplyKeyboardMarkup(keyboard=[
-            [KeyboardButton('/today_schedule'),
-             KeyboardButton('/week_schedule')]
+            [KeyboardButton('/help')]
         ], resize_keyboard=True)
         return kb
 
@@ -45,7 +30,8 @@ class Keyboards:
             ReplyKeyboardMarkup
         '''
         kb = ReplyKeyboardMarkup(keyboard=[
-            [KeyboardButton('/return_to_menu'),
-             KeyboardButton('/change_group_number')]
+            [KeyboardButton('/return_to_menu')],
+            [KeyboardButton('/today_schedule')],
+            [KeyboardButton('/week_schedule')]
         ], resize_keyboard=True)
         return kb

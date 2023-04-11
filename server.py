@@ -57,11 +57,9 @@ class StateMiddleware(BaseMiddleware):
         Args:
             message (types.Message): message from user
             data (dict): namespace
-        Returns:
-            None
         """
         username = message.from_user.username
-        user_state = await db.get_user_state(username)
+        user_state = db.get_user_state(username)
         cur_state = StudentGroupState.STATES[user_state]
         await cur_state.set()
 
@@ -88,8 +86,6 @@ class ThrottlingMiddleware(BaseMiddleware):
         Args:
             message (types.Message): message from user
             data (dict): namespace
-        Returns:
-            None
         """
         dp = Dispatcher.get_current()
 
@@ -107,8 +103,6 @@ class ThrottlingMiddleware(BaseMiddleware):
         Args:
             message (types.Message): message from user
             throttled (Throttled): an exception caused by limit's exceeding
-        Returns:
-            None
         """
         delta = throttled.rate - throttled.delta
         if throttled.exceeded_count <= 2:
@@ -121,7 +115,7 @@ async def on_startup(_) -> None:
     Executes on bot's startup
     Should connect to the users database
     """
-    await db.db_connect()
+    db.connect()
     print('Bot has been started')
 
 
@@ -133,8 +127,6 @@ async def set_state(state: FSMContext, new_state: str, message: types.Message) -
         state (FSMContext): significant to open proxy and write state into it
         new_state (str): string repr of state to be set
         message (types.Message): message of user
-    Returns:
-        None
     """
     async with state.proxy() as data:
         data['state'] = new_state
@@ -152,8 +144,6 @@ async def cmd_start(message: types.Message, state: FSMContext) -> None:
     Args:
         message (types.Message): message from user
         state (FSMContext): state of user
-    Returns:
-        None
     """
     await bot.send_message(chat_id=message.from_user.id,
                            text='Добро пожаловать!\n'
@@ -163,7 +153,7 @@ async def cmd_start(message: types.Message, state: FSMContext) -> None:
                            text='Для получения расписания введите номер вашей учебной группы',
                            reply_markup=Keyboards.get_start_kb())
 
-    await db.add_user(message.from_user.username)
+    db.add_user(message.from_user.username)
     await set_state(state, 'processing', message)
 
 
@@ -175,15 +165,14 @@ async def cmd_help(message: types.Message) -> None:
 
     Args:
         message (types.Message): message from user
-    Returns:
-        None
     """
     await bot.send_message(chat_id=message.from_user.id,
                            text='/start - начать работу с ботом\n'
                                 '/help - получить подсказки по командам')
 
 
-@dp.message_handler(commands=['today_schedule'], state=StudentGroupState.final)
+@dp.message_handler(lambda message: message.text == 'Расписание на сегодня  ▶️', 
+                    state=StudentGroupState.final)
 async def cmd_today_schedule(message: types.Message, state: FSMContext) -> None:
     """
     Handler of command today_schedule from user in final state
@@ -192,37 +181,61 @@ async def cmd_today_schedule(message: types.Message, state: FSMContext) -> None:
     Args:
         message (types.Message): message from user
         state (FSMContext): state of user
-    Returns:
-        None
     """
     week = datetime.datetime.today().isocalendar()[1]
     day = datetime.datetime.today().weekday()
-    group_number = await db.get_user_group(message.from_user.username)
-    msg, is_ok = Parser.get_schedule_day("data.json", group_number, week % 2, Parser.number_to_weekday(day))
-    if is_ok:
-        msg = 'Держите ваше расписание на сегодня\n' + msg
-    else:
-        msg = 'Нет расписания для данной группы'
+    group_number = db.get_user_group(message.from_user.username)
+    msg = Parser.get_today_schedule(group_number, week % 2, Parser.number_to_weekday(day))
+    msg = 'Держите ваше расписание на сегодня\n' + msg
     await bot.send_message(chat_id=message.from_user.id,
                            text=msg, parse_mode='HTML',
                            reply_markup=Keyboards.get_cancel_kb())
 
 
-@dp.message_handler(commands=['week_schedule'], state=StudentGroupState.final)
+@dp.message_handler(lambda message: message.text == 'Расписание на неделю  ⏭', 
+                    state=StudentGroupState.final)
 async def cmd_week_schedule(message: types.Message, state: FSMContext) -> None:
+    """
+    Handler of command week_schedule from user in final state
+    Sends week's schedule to user
+
+    Args:
+        message (types.Message): message from user
+        state (FSMContext): state of user
+    """
     week = datetime.datetime.today().isocalendar()[1]
-    group_number = await db.get_user_group(message.from_user.username)
-    msg, is_ok = Parser.get_schedule_week("data.json", group_number, week % 2)
-    if is_ok:
-        msg = 'Держите ваше расписание на неделю\n' + msg
-    else:
-        msg = 'Нет расписания для данной группы'
+    group_number = db.get_user_group(message.from_user.username)
+    msg = Parser.get_week_schedule(group_number, week % 2)
+    msg = 'Держите ваше расписание на неделю\n' + msg
     await bot.send_message(chat_id=message.from_user.id,
                            text=msg, parse_mode='HTML',
                            reply_markup=Keyboards.get_cancel_kb())
 
 
-@dp.message_handler(commands=['return_to_menu'], state=StudentGroupState.final)
+@dp.message_handler(lambda message: message.text == 'Расписание на завтра  ⏩', 
+                    state=StudentGroupState.final)
+async def cmd_tomorrow_schedule(message: types.Message, state: FSMContext) -> None:
+    """
+    Handler of command tomorrow_schedule from user in final state
+    Sends tomorrow's schedule to user
+
+    Args:
+        message (types.Message): message from user
+        state (FSMContext): state of user
+    """
+    tomorrow = datetime.datetime.now() + datetime.timedelta(days=1)
+    week = tomorrow.isocalendar()[1]
+    day = tomorrow.weekday()
+    group_number = db.get_user_group(message.from_user.username)
+    msg = Parser.get_today_schedule(group_number, week % 2, Parser.number_to_weekday(day))
+    msg = 'Держите ваше расписание на завтра\n' + msg
+    await bot.send_message(chat_id=message.from_user.id,
+                           text=msg, parse_mode='HTML',
+                           reply_markup=Keyboards.get_cancel_kb())
+
+
+@dp.message_handler(lambda message: message.text == 'Вернуться назад  ↩️', 
+                    state=StudentGroupState.final)
 async def cmd_cancel(message: types.Message, state: FSMContext) -> None:
     """
     Handler of command return_to_menu from user in final state
@@ -231,8 +244,6 @@ async def cmd_cancel(message: types.Message, state: FSMContext) -> None:
     Args:
         message (types.Message): message from user
         state (FSMContext): state of user
-    Returns:
-        None
     """
     await bot.send_message(chat_id=message.from_user.id,
                            text='Вы вернулись в главное меню',
@@ -243,7 +254,8 @@ async def cmd_cancel(message: types.Message, state: FSMContext) -> None:
     await set_state(state, 'processing', message)
 
 
-@dp.message_handler(lambda message: message.text.isdigit(), state=StudentGroupState.processing)
+@dp.message_handler(lambda message: message.text in db.get_valid_groups(), 
+                    state=StudentGroupState.processing)
 async def handle_number(message: types.Message, state: FSMContext) -> None:
     """
     Handler of group number from user in initial state
@@ -253,8 +265,6 @@ async def handle_number(message: types.Message, state: FSMContext) -> None:
     Args:
         message (types.Message): message from user
         state (FSMContext): state of user
-    Returns:
-        None
     """
     async with state.proxy() as data:
         data['group'] = message.text
@@ -266,7 +276,8 @@ async def handle_number(message: types.Message, state: FSMContext) -> None:
     await set_state(state, 'final', message)
 
 
-@dp.message_handler(lambda message: not message.text.isdigit(), state=StudentGroupState.processing)
+@dp.message_handler(lambda message: message.text not in db.get_valid_groups(), 
+                    state=StudentGroupState.processing)
 async def handle_wrong_number(message: types.Message, state: FSMContext) -> None:
     """
     Handler of wrong group number from user in initial state
@@ -275,8 +286,6 @@ async def handle_wrong_number(message: types.Message, state: FSMContext) -> None
     Args:
         message (types.Message): message from user
         state (FSMContext): state of user
-    Returns:
-        None
     """
     await message.reply(text='Неверный номер группы!\n'
                              'Повторите попытку',
@@ -292,8 +301,6 @@ async def handle_message_while_final(message: types.Message, state: FSMContext) 
     Args:
         message (types.Message): message from user
         state (FSMContext): state of user
-    Returns:
-        None
     """
     await bot.send_message(chat_id=message.from_user.id,
                            text='Выберите опцию!',
@@ -309,8 +316,6 @@ async def handle_message_while_processing(message: types.Message, state: FSMCont
     Args:
         message (types.Message): message from user
         state (FSMContext): state of user
-    Returns:
-        None
     """
     await message.reply(text='Выберите одну из предложенных опций',
                         reply_markup=Keyboards.get_start_kb())
@@ -320,9 +325,6 @@ if __name__ == '__main__':
     dp.middleware.setup(StateMiddleware())
     dp.middleware.setup(ThrottlingMiddleware())
 
-    for pdf_table in glob.glob("schedule_tables/*.pdf"):
-        print(f"Getting data from {pdf_table}")
-        Parser.pdf_to_json(pdf_table, "data.json")
     executor.start_polling(dispatcher=dp,
                            skip_updates=True,
                            on_startup=on_startup)

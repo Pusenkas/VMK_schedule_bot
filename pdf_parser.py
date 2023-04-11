@@ -2,8 +2,8 @@
 """
 
 import camelot
-import json
 import shlex
+from database import Database
 
 
 class Lesson:
@@ -58,32 +58,33 @@ class DoubleLesson(Lesson):
 
 
 class Parser:
-    """PDF table parser, which can transform it into the json data"""
+    """PDF table parser, which can transform it into database"""
     WEEKDAYS = ("Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота")
 
     @staticmethod
-    def number_to_weekday(i: int) -> str:
-        return Parser.WEEKDAYS[i]
+    def number_to_weekday(number: int) -> str:
+        """
+        Returns string repr of weekday by its number
+
+        Args:
+            number (int): number of weekday
+        Returns:
+            str
+        """
+        if number == 6:
+            return 'Воскресенье'
+        return Parser.WEEKDAYS[number]
 
     @staticmethod
-    def pdf_to_json(filename_pdf: str, filename_json: str) -> None:
-        """Static method that transform given pdf table into json and store it into the file
+    def import_schedule_to_database(filename_pdf: str) -> None:
+        """Static method that imports given pdf table into database
 
         Args:
             filename_pdf (str): name of pdf table file
-            filename_json (str): name of json file to store data in json format
-        Returns:
-            None
         """
         data = {}
-        with open(filename_json, "r") as f:
-            try:
-                data = json.load(f)
-                if not isinstance(data, dict):
-                    raise json.decoder.JSONDecodeError("Not a dictionary", "", 0)
-            except json.decoder.JSONDecodeError:
-                data = {}
 
+        # extracting tables from pdf
         tables = camelot.read_pdf(filename_pdf, line_scale=100, copy_text=['v', 'h'], pages='all')
         for page in tables:
             df = page.df
@@ -105,92 +106,91 @@ class Parser:
                             for group_number, lesson_up, lesson_down in zip(groups, df.loc[i, 1:], df.loc[i + 1, 1:]):
                                 if lesson_up == lesson_down:
                                     data[group_number][current_weekday].append(
-                                        NormalLesson(start_time, end_time, lesson_up))
+                                        str(NormalLesson(start_time, end_time, lesson_up)))
                                 else:
                                     data[group_number][current_weekday].append(
-                                        DoubleLesson(start_time, end_time, lesson_up, lesson_down))
+                                        str(DoubleLesson(start_time, end_time, lesson_up, lesson_down)))
                             i += 1
                         else:
                             for group_number, lesson in zip(groups, df.loc[i, 1:]):
-                                data[group_number][current_weekday].append(NormalLesson(start_time, end_time, lesson))
+                                data[group_number][current_weekday].append(str(NormalLesson(start_time, end_time, lesson)))
                     case _:
                         pass
                 i += 1
-        with open(filename_json, "w") as f:
-            json.dump(data, f, default=lambda x: str(x))
+
+        # import schedule into database
+        db = Database()
+        db.connect()
+
+        for group_number in data.keys():
+            for weekday in Parser.WEEKDAYS:
+                for parity in [False, True]:
+                    table_entry = Parser.get_schedule_day(data, group_number, parity, weekday)
+                    db.update_schedule(group_number, weekday, parity, table_entry)
 
     @staticmethod
-    def pretty_print_json(filename_json: str) -> None:
-        """Method for pretty printing json file
-
-        Args:
-            filename_json (str): name of json file
-        Returns:
-            None
+    def get_today_schedule(group_number: str, parity: bool, weekday: str) -> str:
         """
-        data = None
-
-        with open(filename_json, "r") as f:
-            data = json.load(f)
-
-        for grn in data:
-            print(f"GROUP {grn}")
-            for day in data[grn]:
-                print(f"{grn} DAY {day}")
-                print(*data[grn][day], sep="\n")
-
-    @staticmethod
-    def get_schedule_week(filename_json: str, group_number: str, odd_week: bool) -> tuple[str, bool]:
-        """Return schedule of chosen group on week
+        Returns today's schedule for user
 
         Args:
-            filename_json (str): name of json file with schedule data
-            group_number (str): group number
-            odd_week (bool): is current week odd or even?
+            group_number (str): user's group
+            parity (bool): parity of the week
+            weekday (str): day of the week
         Returns:
-            (str): schedule on week in pretty text format
-            (bool): is positive result
+            str
         """
-        with open(filename_json, "r") as f:
-            data = json.load(f)
-            if group_number not in data:
-                return "", False
-            data = data[group_number]
-            res = ""
-            for weekday in data:
-                res += Parser.get_schedule_day(filename_json, group_number, odd_week, weekday)[0]
-            return res, True
+        if weekday == 'Воскресенье':
+            return 'Не волнуйтесь, это воскресенье 🥳'
+        db = Database()
+        db.connect()
+
+        return db.get_schedule(group_number, parity, weekday)
 
     @staticmethod
-    def get_schedule_day(filename_json: str, group_number: str, odd_week: bool, day: str) -> tuple[str, bool]:
-        """Return schedule of chosen group on  day
+    def get_week_schedule(group_number: str, parity: bool) -> str:
+        """
+        Returns week's schedule for user
 
         Args:
-            filename_json (str): name of json file with schedule data
+            group_number (str): user's group
+            parity (bool): parity of the week
+        Returns:
+            str
+        """
+        db = Database()
+        db.connect()
+
+        schedule = ''
+        for weekday in Parser.WEEKDAYS:
+            schedule += db.get_schedule(group_number, parity, weekday)
+
+        return schedule
+
+    @staticmethod
+    def get_schedule_day(data: dict['str', 'str'], group_number: str, odd_week: bool, day: str) -> str:
+        """Return schedule of chosen group on day
+
+        Args:
             group_number (str): group number
             odd_week (bool): is current week odd or even?
             day (str): day of the week
         Returns:
             (str): schedule on day in pretty text format
-            (bool): is positive result
         """
-        with open(filename_json, "r") as f:
-            data = json.load(f)
-            if group_number not in data:
-                return "", False
-            data = data[group_number][day]
-            res = f"<b>{day}</b>\n"
-            for i, lesson in enumerate(data, 1):
-                match shlex.split(lesson):
-                    case [NormalLesson.CODE, start_time, end_time, description]:
-                        res += Parser._pretty_lesson_str(i, start_time, end_time, description)
-                    case [DoubleLesson.CODE, start_time, end_time, _, description] if odd_week:
-                        res += Parser._pretty_lesson_str(i, start_time, end_time, description)
-                    case [DoubleLesson.CODE, start_time, end_time, description, _] if not odd_week:
-                        res += Parser._pretty_lesson_str(i, start_time, end_time, description)
-                    case _:
-                        pass
-            return res, True
+        data = data[group_number][day]
+        res = f"<b>{day}</b>\n"
+        for i, lesson in enumerate(data, 1):
+            match shlex.split(lesson):
+                case [NormalLesson.CODE, start_time, end_time, description]:
+                    res += Parser._pretty_lesson_str(i, start_time, end_time, description)
+                case [DoubleLesson.CODE, start_time, end_time, _, description] if odd_week:
+                    res += Parser._pretty_lesson_str(i, start_time, end_time, description)
+                case [DoubleLesson.CODE, start_time, end_time, description, _] if not odd_week:
+                    res += Parser._pretty_lesson_str(i, start_time, end_time, description)
+                case _:
+                    pass
+        return res
 
     @staticmethod
     def _pretty_lesson_str(i: int, start_time: str, end_time: str, description: str):

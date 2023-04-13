@@ -22,20 +22,22 @@ class Database:
 
         self.cur.execute('CREATE TABLE IF NOT EXISTS students(username TEXT PRIMARY KEY, group_number TEXT, state TEXT)')
         self.db.commit()
-        self.cur.execute('CREATE TABLE IF NOT EXISTS schedule(group_number TEXT, weekday TEXT, parity BOOL, table_entry TEXT)')
+        self.cur.execute('CREATE TABLE IF NOT EXISTS schedule(group_number TEXT, parity BOOL, Понедельник TEXT, Вторник TEXT,'
+                         'Среда TEXT, Четверг TEXT, Пятница TEXT, Суббота TEXT)')
         self.db.commit()
 
-    def update_schedule(self, group_number: str, weekday: str, parity: bool, table_entry: str) -> None:
+    def update_schedule(self, group_number: str, parity: bool, table_entry: list[str]) -> None:
         """
         Method to update table schedule with new entry
 
         Args:
             group_number (str): user's group
-            weekday (str): day of the week
             parity (bool): parity of the week
-            table_entry (str): entry (lesson)
+            table_entry (list[str]): list of schedules for each day in a week
         """
-        self.cur.execute('INSERT INTO schedule VALUES(?, ?, ?, ?)', (group_number, weekday, parity, table_entry))
+
+        self.cur.execute('INSERT INTO schedule VALUES(?, ?, ?, ?, ?, ?, ?, ?)', 
+                         (group_number, parity, *table_entry))
         self.db.commit()
 
     def get_valid_groups(self) -> list[str]:
@@ -59,8 +61,8 @@ class Database:
         Returns:
             str
         """
-        schedule = self.cur.execute('SELECT table_entry FROM schedule WHERE group_number=="{}" AND parity=={} AND weekday=="{}"'
-                                    .format(group_number, parity, weekday)).fetchone()
+        schedule = self.cur.execute('SELECT {} FROM schedule WHERE group_number=="{}" AND parity=={}'
+                                    .format(weekday, group_number, parity)).fetchone()
         return schedule[0]
 
     def add_user(self, username: str) -> None:

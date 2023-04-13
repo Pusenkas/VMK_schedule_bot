@@ -4,10 +4,14 @@
 import camelot
 import shlex
 from database import Database
+import string
+import json
+from datetime import datetime
 
 
 class Lesson:
-    """Lesson class to be inherited
+    """
+    Lesson class to be inherited
 
     Args:
         start_time (str): Class start time
@@ -18,7 +22,8 @@ class Lesson:
 
 
 class NormalLesson(Lesson):
-    """Normal lesson
+    """
+    Normal lesson
 
     Args:
         description (str): text that describes normal lesson
@@ -37,7 +42,8 @@ class NormalLesson(Lesson):
 
 
 class DoubleLesson(Lesson):
-    """Odd/even week lesson
+    """
+    Odd/even week lesson
 
     Args:
         description_up (str): description for a odd week lesson
@@ -77,7 +83,8 @@ class Parser:
 
     @staticmethod
     def import_schedule_to_database(filename_pdf: str) -> None:
-        """Static method that imports given pdf table into database
+        """
+        Static method that imports given pdf table into database
 
         Args:
             filename_pdf (str): name of pdf table file
@@ -85,7 +92,7 @@ class Parser:
         data = {}
 
         # extracting tables from pdf
-        tables = camelot.read_pdf(filename_pdf, line_scale=100, copy_text=['v', 'h'], pages='all')
+        tables = camelot.read_pdf(filename_pdf, line_scale=110, copy_text=['v', 'h'], pages='all')
         for page in tables:
             df = page.df
             if df.iloc[0, -1] in Parser.WEEKDAYS:  # removing double dates
@@ -113,7 +120,8 @@ class Parser:
                             i += 1
                         else:
                             for group_number, lesson in zip(groups, df.loc[i, 1:]):
-                                data[group_number][current_weekday].append(str(NormalLesson(start_time, end_time, lesson)))
+                                data[group_number][current_weekday].append(
+                                    str(NormalLesson(start_time, end_time, lesson)))
                     case _:
                         pass
                 i += 1
@@ -122,11 +130,48 @@ class Parser:
         db = Database()
         db.connect()
 
+        valid_characters = set(string.digits + '/')  # valid characters in group number
         for group_number in data.keys():
-            for weekday in Parser.WEEKDAYS:
+            if set(group_number) <= valid_characters:
                 for parity in [False, True]:
-                    table_entry = Parser.get_schedule_day(data, group_number, parity, weekday)
-                    db.update_schedule(group_number, weekday, parity, table_entry)
+                    table_entry = list()
+                    for weekday in Parser.WEEKDAYS:
+                        table_entry.append(Parser.get_schedule_day(data, group_number, parity, weekday))
+                    db.update_schedule(group_number, parity, table_entry)
+
+    @staticmethod
+    def mark_day_schedule(day_schedule: list[str], tomorrow: bool) -> list[str]:
+        """
+        Marks lessons as passed (red), in progress (yellow) and will be (green)
+
+        Args:
+            day_schedule (list[str]): list of all lessons for the day
+            tomorrow (bool): True if this request not for today and shouldn't be marked
+        Returns:
+            list[str]
+        """
+        MARKS = {'after': '🔴', 'during': '🟡', 'before': '🟢'}
+
+        marked = list()
+        for i, lesson in enumerate(day_schedule, 1):
+            _, start_time, end_time, description = shlex.split(lesson)
+
+            mark = ''
+            if not tomorrow:
+                start_hour, start_minute = map(int, start_time.split('.'))
+                end_hour, end_minute = map(int, end_time.split('.'))
+
+                now = datetime.now()
+                start = now.replace(hour=start_hour, minute=start_minute, second=0)
+                end = now.replace(hour=end_hour, minute=end_minute, second=0)
+
+                mark = MARKS['during'] if start <= now <= end else MARKS['before'] if now < start else MARKS['after']
+
+            if description:
+                marked.append(Parser._pretty_lesson_str(i, start_time, end_time, description) + ' ' + mark)
+
+        return marked
+
 
     @staticmethod
     def get_today_schedule(group_number: str, parity: bool, weekday: str) -> str:
@@ -142,10 +187,15 @@ class Parser:
         """
         if weekday == 'Воскресенье':
             return 'Не волнуйтесь, это воскресенье 🥳'
+
         db = Database()
         db.connect()
 
-        return db.get_schedule(group_number, parity, weekday)
+        today_schedule = db.get_schedule(group_number, parity, weekday)
+        tomorrow = Parser.number_to_weekday(datetime.today().weekday()) != weekday  # True if this request not for today
+        today_schedule = Parser.mark_day_schedule(json.loads(today_schedule), tomorrow=tomorrow)
+
+        return '\n'.join([f'<b>{weekday}</b>'] + today_schedule)
 
     @staticmethod
     def get_week_schedule(group_number: str, parity: bool) -> str:
@@ -161,41 +211,53 @@ class Parser:
         db = Database()
         db.connect()
 
-        schedule = ''
+        week_schedule = ''
         for weekday in Parser.WEEKDAYS:
-            schedule += db.get_schedule(group_number, parity, weekday)
+            schedule_list = db.get_schedule(group_number, parity, weekday)
+            schedule_list = json.loads(schedule_list)
 
-        return schedule
+            day_schedule = f'<b>{weekday}</b>\n'
+            for i, lesson in enumerate(schedule_list, 1):
+                _, start_time, end_time, description = shlex.split(lesson)
+                if description:
+                    day_schedule += Parser._pretty_lesson_str(i, start_time, end_time, description) + '\n'
+
+            week_schedule += day_schedule
+
+        return week_schedule
 
     @staticmethod
     def get_schedule_day(data: dict['str', 'str'], group_number: str, odd_week: bool, day: str) -> str:
-        """Return schedule of chosen group on day
+        """
+        Return schedule of chosen group on day in json format
 
         Args:
             group_number (str): group number
             odd_week (bool): is current week odd or even?
             day (str): day of the week
         Returns:
-            (str): schedule on day in pretty text format
+            (str): schedule on day
         """
         data = data[group_number][day]
-        res = f"<b>{day}</b>\n"
+
+        res = list()
         for i, lesson in enumerate(data, 1):
             match shlex.split(lesson):
                 case [NormalLesson.CODE, start_time, end_time, description]:
-                    res += Parser._pretty_lesson_str(i, start_time, end_time, description)
+                    res.append(str(NormalLesson(start_time, end_time, description)))
                 case [DoubleLesson.CODE, start_time, end_time, _, description] if odd_week:
-                    res += Parser._pretty_lesson_str(i, start_time, end_time, description)
+                    res.append(str(NormalLesson(start_time, end_time, description)))
                 case [DoubleLesson.CODE, start_time, end_time, description, _] if not odd_week:
-                    res += Parser._pretty_lesson_str(i, start_time, end_time, description)
+                    res.append(str(NormalLesson(start_time, end_time, description)))
                 case _:
                     pass
-        return res
+
+        return json.dumps(res)
 
     @staticmethod
     def _pretty_lesson_str(i: int, start_time: str, end_time: str, description: str):
         """Used for string formatting"""
         if description:
             description = " ".join(description.replace('\n', ' ').split())
-            return f"{i}) ({start_time}-{end_time}) {description}\n"
+            return f"{i}) ({start_time}-{end_time}) {description}"
         return ""

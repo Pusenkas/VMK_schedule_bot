@@ -172,7 +172,6 @@ class Parser:
 
         return marked
 
-
     @staticmethod
     def get_today_schedule(group_number: str, parity: bool, weekday: str) -> str:
         """

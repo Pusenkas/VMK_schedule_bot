@@ -171,7 +171,7 @@ async def cmd_help(message: types.Message) -> None:
                                 '/help - получить подсказки по командам')
 
 
-@dp.message_handler(lambda message: message.text == 'Расписание на сегодня  ▶️', 
+@dp.message_handler(lambda message: message.text == 'Расписание на сегодня  ▶️',
                     state=StudentGroupState.final)
 async def cmd_today_schedule(message: types.Message, state: FSMContext) -> None:
     """
@@ -192,7 +192,7 @@ async def cmd_today_schedule(message: types.Message, state: FSMContext) -> None:
                            reply_markup=Keyboards.get_cancel_kb())
 
 
-@dp.message_handler(lambda message: message.text == 'Расписание на неделю  ⏭', 
+@dp.message_handler(lambda message: message.text == 'Расписание на неделю  ⏭',
                     state=StudentGroupState.final)
 async def cmd_week_schedule(message: types.Message, state: FSMContext) -> None:
     """
@@ -212,7 +212,7 @@ async def cmd_week_schedule(message: types.Message, state: FSMContext) -> None:
                            reply_markup=Keyboards.get_cancel_kb())
 
 
-@dp.message_handler(lambda message: message.text == 'Расписание на завтра  ⏩', 
+@dp.message_handler(lambda message: message.text == 'Расписание на завтра  ⏩',
                     state=StudentGroupState.final)
 async def cmd_tomorrow_schedule(message: types.Message, state: FSMContext) -> None:
     """
@@ -234,7 +234,7 @@ async def cmd_tomorrow_schedule(message: types.Message, state: FSMContext) -> No
                            reply_markup=Keyboards.get_cancel_kb())
 
 
-@dp.message_handler(lambda message: message.text == 'Вернуться назад  ↩️', 
+@dp.message_handler(lambda message: message.text == 'Вернуться назад  ↩️',
                     state=StudentGroupState.final)
 async def cmd_cancel(message: types.Message, state: FSMContext) -> None:
     """
@@ -254,7 +254,7 @@ async def cmd_cancel(message: types.Message, state: FSMContext) -> None:
     await set_state(state, 'processing', message)
 
 
-@dp.message_handler(lambda message: message.text in db.get_valid_groups(), 
+@dp.message_handler(lambda message: message.text in db.get_valid_groups(),
                     state=StudentGroupState.processing)
 async def handle_number(message: types.Message, state: FSMContext) -> None:
     """
@@ -276,7 +276,7 @@ async def handle_number(message: types.Message, state: FSMContext) -> None:
     await set_state(state, 'final', message)
 
 
-@dp.message_handler(lambda message: message.text not in db.get_valid_groups(), 
+@dp.message_handler(lambda message: message.text not in db.get_valid_groups(),
                     state=StudentGroupState.processing)
 async def handle_wrong_number(message: types.Message, state: FSMContext) -> None:
     """

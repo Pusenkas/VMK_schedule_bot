@@ -20,10 +20,14 @@ class Database:
             self.db = sq.connect('users.db')
             self.cur = self.db.cursor()
 
-        self.cur.execute('CREATE TABLE IF NOT EXISTS students(username TEXT PRIMARY KEY, group_number TEXT, state TEXT)')
+        self.cur.execute(
+            'CREATE TABLE IF NOT EXISTS students(username TEXT PRIMARY KEY, group_number TEXT, state TEXT)')
         self.db.commit()
-        self.cur.execute('CREATE TABLE IF NOT EXISTS schedule(group_number TEXT, parity BOOL, Понедельник TEXT, Вторник TEXT,'
-                         'Среда TEXT, Четверг TEXT, Пятница TEXT, Суббота TEXT)')
+        self.cur.execute(
+            'CREATE TABLE IF NOT EXISTS schedule(group_number TEXT, parity BOOL, Понедельник TEXT, Вторник TEXT,'
+            'Среда TEXT, Четверг TEXT, Пятница TEXT, Суббота TEXT)')
+        self.db.commit()
+        self.cur.execute('CREATE TABLE IF NOT EXISTS hashes(hash TEXT)')
         self.db.commit()
 
     def update_schedule(self, group_number: str, parity: bool, table_entry: list[str]) -> None:
@@ -36,7 +40,7 @@ class Database:
             table_entry (list[str]): list of schedules for each day in a week
         """
 
-        self.cur.execute('INSERT INTO schedule VALUES(?, ?, ?, ?, ?, ?, ?, ?)', 
+        self.cur.execute('INSERT INTO schedule VALUES(?, ?, ?, ?, ?, ?, ?, ?)',
                          (group_number, parity, *table_entry))
         self.db.commit()
 
@@ -86,7 +90,8 @@ class Database:
             username (str): username
         """
         async with state.proxy() as data:
-            self.cur.execute('UPDATE students SET group_number="{}" WHERE username=="{}"'.format(data['group'], username))
+            self.cur.execute(
+                'UPDATE students SET group_number="{}" WHERE username=="{}"'.format(data['group'], username))
             self.db.commit()
 
     async def edit_user_state(self, state: FSMContext, username: str) -> None:
@@ -128,3 +133,19 @@ class Database:
         if not state:
             return 'none'
         return state[0]
+
+    def add_hash(self, my_hash: str) -> bool:
+        """
+        Method to add a new hash
+
+        Args:
+            my_hash (str): hash to store in database
+        Returns:
+            bool: True if my_hash is in database. Otherwise False
+        """
+        user = self.cur.execute('SELECT hash FROM hashes WHERE hash=="{}"'.format(my_hash)).fetchone()
+        if not user:
+            self.cur.execute('INSERT INTO hashes VALUES(?)', (my_hash,))
+            self.db.commit()
+            return False
+        return True

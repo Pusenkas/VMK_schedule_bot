@@ -11,8 +11,6 @@ from aiogram.dispatcher.filters.state import StatesGroup, State
 from aiogram.dispatcher.middlewares import BaseMiddleware
 from aiogram.utils.exceptions import Throttled
 from aiogram.dispatcher.handler import CancelHandler
-from aiogram.types import ReplyKeyboardMarkup
-import glob
 import datetime
 from pdf_parser import Parser
 

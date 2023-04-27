@@ -104,7 +104,7 @@ class Parser:
                     case [week_day] if week_day in Parser.WEEKDAYS:
                         if not group_number_filled:
                             data |= {group_number:
-                                         {day: [] for day in Parser.WEEKDAYS} for group_number in df.loc[i, 1:]}
+                                     {day: [] for day in Parser.WEEKDAYS} for group_number in df.loc[i, 1:]}
                             groups = [group_number for group_number in df.loc[i, 1:]]
                             group_number_filled = True
                         current_weekday = week_day

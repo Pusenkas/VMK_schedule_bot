@@ -7,7 +7,7 @@ class Keyboards:
     """
     Class of keyboards for user
     """
-    
+
     @staticmethod
     def get_start_kb() -> ReplyKeyboardMarkup:
         """

@@ -17,7 +17,7 @@ class Database:
     def connect(self) -> None:
         """Method to connect to database"""
         if not hasattr(self, 'db'):
-            self.db = sq.connect('../users.db')
+            self.db = sq.connect('users.db')
             self.cur = self.db.cursor()
 
         self.cur.execute(

@@ -2,7 +2,7 @@
 
 from .pdf_parser import Parser
 import glob
-from VMK_bot.database import Database
+from .database import Database
 import hashlib
 
 
@@ -12,7 +12,8 @@ def setup():
 
     for pdf_table in glob.glob("schedule_tables/*.pdf"):
         print(f"Getting data from {pdf_table}")
-        my_hash = hashlib.md5(pdf_table.encode()).hexdigest()
+        with open(pdf_table, "rb") as f:
+            my_hash = hashlib.md5(f.read()).hexdigest()
         if not db.add_hash(my_hash):
             print(f"no {my_hash} in db")
             Parser.import_schedule_to_database(pdf_table)

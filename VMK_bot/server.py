@@ -1,10 +1,10 @@
 """Server side for Schedule Telegram bot"""
 
 import asyncio
-from keyboards import Keyboards
-from database import Database
+from VMK_bot.keyboards import Keyboards
+from VMK_bot.database import Database
 from aiogram import Bot, Dispatcher, executor, types
-from config import TOKEN
+from VMK_bot.config import TOKEN
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import StatesGroup, State
@@ -12,7 +12,7 @@ from aiogram.dispatcher.middlewares import BaseMiddleware
 from aiogram.utils.exceptions import Throttled
 from aiogram.dispatcher.handler import CancelHandler
 import datetime
-from pdf_parser import Parser
+from VMK_bot.pdf_parser import Parser
 
 bot = Bot(TOKEN)
 storage = MemoryStorage()
@@ -319,10 +319,14 @@ async def handle_message_while_processing(message: types.Message, state: FSMCont
                         reply_markup=Keyboards.get_start_kb())
 
 
-if __name__ == '__main__':
+def run_server():
     dp.middleware.setup(StateMiddleware())
     dp.middleware.setup(ThrottlingMiddleware())
 
     executor.start_polling(dispatcher=dp,
                            skip_updates=True,
                            on_startup=on_startup)
+
+
+if __name__ == '__main__':
+    run_server()

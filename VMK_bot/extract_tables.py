@@ -1,11 +1,12 @@
 """Script to extract tables from pdf to json"""
 
-from pdf_parser import Parser
+from .pdf_parser import Parser
 import glob
-from database import Database
+from VMK_bot.database import Database
 import hashlib
 
-if __name__ == '__main__':
+
+def setup():
     db = Database()
     db.connect()
 
@@ -15,3 +16,7 @@ if __name__ == '__main__':
         if not db.add_hash(my_hash):
             print(f"no {my_hash} in db")
             Parser.import_schedule_to_database(pdf_table)
+
+
+if __name__ == '__main__':
+    setup()

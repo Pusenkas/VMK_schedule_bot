@@ -3,7 +3,7 @@
 
 import camelot
 import shlex
-from database import Database
+from VMK_bot.database import Database
 import string
 import json
 from datetime import datetime

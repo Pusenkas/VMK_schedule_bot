@@ -6,12 +6,13 @@
 Welcome to VMK_schedule_bot's documentation!
 ============================================
 
+Добро пожаловать!!
+
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
 
-.. automodule:: pdf_parser
-   :members:
+   modules
 
 Indices and tables
 ==================

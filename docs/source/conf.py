@@ -12,7 +12,7 @@ sys.path.append(os.path.abspath('../..'))
 
 
 project = 'VMK_schedule_bot'
-copyright = '2023, Ivanov Pave;'
+copyright = '2023, Ivanov Pavel, Sergey Novikov'
 author = 'Ivanov Pavel'
 release = 'v1.0'
 

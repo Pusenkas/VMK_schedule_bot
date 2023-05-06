@@ -1,10 +1,8 @@
-"""
-"""
+"""Module for parsing pdf tables and saving data into database"""
 
 import camelot
 import shlex
 from VMK_bot.database import Database
-import string
 import json
 from datetime import datetime
 
@@ -82,12 +80,14 @@ class Parser:
         return Parser.WEEKDAYS[number]
 
     @staticmethod
-    def import_schedule_to_database(filename_pdf: str) -> None:
+    def parse_schedule(filename_pdf: str) -> dict:
         """
         Static method that imports given pdf table into database
 
         Args:
             filename_pdf (str): name of pdf table file
+        Returns:
+            dict: Data from parsed schedule
         """
         data = {}
 
@@ -95,6 +95,9 @@ class Parser:
         tables = camelot.read_pdf(filename_pdf, line_scale=110, copy_text=['v', 'h'], pages='all')
         for page in tables:
             df = page.df
+            if df[0][0] not in Parser.WEEKDAYS:
+                df = df.iloc[1:, :]
+                df.index = range(len(df))
             if df.iloc[0, -1] in Parser.WEEKDAYS:  # removing double dates
                 df = df.iloc[:, :-1]
             i, group_number_filled = 0, False
@@ -126,11 +129,17 @@ class Parser:
                         pass
                 i += 1
 
+        return data
+
+    @staticmethod
+    def import_schedule_to_database(filename_pdf: str) -> None:
+        data = Parser.parse_schedule(filename_pdf)
+
         # import schedule into database
         db = Database()
         db.connect()
 
-        valid_characters = set(string.digits + '/')  # valid characters in group number
+        valid_characters = set("0123456789/")  # valid characters in group number
         for group_number in data.keys():
             if set(group_number) <= valid_characters:
                 for parity in [False, True]:
@@ -235,7 +244,7 @@ class Parser:
             odd_week (bool): is current week odd or even?
             day (str): day of the week
         Returns:
-            (str): schedule on day
+            str: schedule on day
         """
         data = data[group_number][day]
 

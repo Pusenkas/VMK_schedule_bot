@@ -1,6 +1,7 @@
 """Server side for Schedule Telegram bot"""
 
 import asyncio
+from VMK_bot.messageUI import MessageToUser
 from VMK_bot.keyboards import Keyboards
 from VMK_bot.database import Database
 from aiogram import Bot, Dispatcher, executor, types
@@ -13,6 +14,7 @@ from aiogram.utils.exceptions import Throttled
 from aiogram.dispatcher.handler import CancelHandler
 import datetime
 from VMK_bot.pdf_parser import Parser
+
 
 bot = Bot(TOKEN)
 storage = MemoryStorage()
@@ -104,7 +106,9 @@ class ThrottlingMiddleware(BaseMiddleware):
         """
         delta = throttled.rate - throttled.delta
         if throttled.exceeded_count <= 2:
-            await message.reply('Вы превысили лимит сообщений. Подождите')
+            message_to_user = MessageToUser.translate('Вы превысили лимит сообщений. Подождите',
+                                                      message.from_user.language_code)
+            await message.reply(message_to_user)
         await asyncio.sleep(delta)
 
 
@@ -143,13 +147,17 @@ async def cmd_start(message: types.Message, state: FSMContext) -> None:
         message (types.Message): message from user
         state (FSMContext): state of user
     """
+    message_to_user = MessageToUser.translate('Добро пожаловать!\nЯ бот, отправляющий расписание ВМК',
+                                              message.from_user.language_code)
     await bot.send_message(chat_id=message.from_user.id,
-                           text='Добро пожаловать!\n'
-                                'Я бот, отправляющий расписание ВМК',
-                           reply_markup=Keyboards.get_start_kb())
+                           text=message_to_user,
+                           reply_markup=Keyboards.get_start_kb(message.from_user.language_code))
+
+    message_to_user = MessageToUser.translate('Для получения расписания введите номер вашей учебной группы',
+                                              message.from_user.language_code)
     await bot.send_message(chat_id=message.from_user.id,
-                           text='Для получения расписания введите номер вашей учебной группы',
-                           reply_markup=Keyboards.get_start_kb())
+                           text=message_to_user,
+                           reply_markup=Keyboards.get_start_kb(message.from_user.language_code))
 
     db.add_user(message.from_user.username)
     await set_state(state, 'processing', message)
@@ -164,12 +172,13 @@ async def cmd_help(message: types.Message) -> None:
     Args:
         message (types.Message): message from user
     """
+    message_to_user = MessageToUser.translate('/start - начать работу с ботом\n/help - получить подсказки по командам',
+                                              message.from_user.language_code)
     await bot.send_message(chat_id=message.from_user.id,
-                           text='/start - начать работу с ботом\n'
-                                '/help - получить подсказки по командам')
+                           text=message_to_user)
 
 
-@dp.message_handler(lambda message: message.text == 'Расписание на сегодня  ▶️',
+@dp.message_handler(lambda message: message.text == MessageToUser.translate('Расписание на сегодня  ▶️', message.from_user.language_code),
                     state=StudentGroupState.final)
 async def cmd_today_schedule(message: types.Message, state: FSMContext) -> None:
     """
@@ -183,14 +192,18 @@ async def cmd_today_schedule(message: types.Message, state: FSMContext) -> None:
     week = datetime.datetime.today().isocalendar()[1]
     day = datetime.datetime.today().weekday()
     group_number = db.get_user_group(message.from_user.username)
-    msg = Parser.get_today_schedule(group_number, week % 2, Parser.number_to_weekday(day))
-    msg = 'Держите ваше расписание на сегодня\n' + msg
+    schedule = Parser.get_today_schedule(group_number, week % 2, Parser.number_to_weekday(day))
+
+    message_to_user = MessageToUser.translate('Держите ваше расписание на сегодня\n',
+                                              message.from_user.language_code)
+
+    schedule = message_to_user + schedule
     await bot.send_message(chat_id=message.from_user.id,
-                           text=msg, parse_mode='HTML',
-                           reply_markup=Keyboards.get_cancel_kb())
+                           text=schedule, parse_mode='HTML',
+                           reply_markup=Keyboards.get_cancel_kb(message.from_user.language_code))
 
 
-@dp.message_handler(lambda message: message.text == 'Расписание на неделю  ⏭',
+@dp.message_handler(lambda message: message.text == MessageToUser.translate('Расписание на неделю  ⏭', message.from_user.language_code),
                     state=StudentGroupState.final)
 async def cmd_week_schedule(message: types.Message, state: FSMContext) -> None:
     """
@@ -203,14 +216,18 @@ async def cmd_week_schedule(message: types.Message, state: FSMContext) -> None:
     """
     week = datetime.datetime.today().isocalendar()[1]
     group_number = db.get_user_group(message.from_user.username)
-    msg = Parser.get_week_schedule(group_number, week % 2)
-    msg = 'Держите ваше расписание на неделю\n' + msg
+    schedule = Parser.get_week_schedule(group_number, week % 2)
+
+    message_to_user = MessageToUser.translate('Держите ваше расписание на неделю\n',
+                                              message.from_user.language_code)
+
+    schedule = message_to_user + schedule
     await bot.send_message(chat_id=message.from_user.id,
-                           text=msg, parse_mode='HTML',
-                           reply_markup=Keyboards.get_cancel_kb())
+                           text=schedule, parse_mode='HTML',
+                           reply_markup=Keyboards.get_cancel_kb(message.from_user.language_code))
 
 
-@dp.message_handler(lambda message: message.text == 'Расписание на завтра  ⏩',
+@dp.message_handler(lambda message: message.text == MessageToUser.translate('Расписание на завтра  ⏩', message.from_user.language_code),
                     state=StudentGroupState.final)
 async def cmd_tomorrow_schedule(message: types.Message, state: FSMContext) -> None:
     """
@@ -225,14 +242,18 @@ async def cmd_tomorrow_schedule(message: types.Message, state: FSMContext) -> No
     week = tomorrow.isocalendar()[1]
     day = tomorrow.weekday()
     group_number = db.get_user_group(message.from_user.username)
-    msg = Parser.get_today_schedule(group_number, week % 2, Parser.number_to_weekday(day))
-    msg = 'Держите ваше расписание на завтра\n' + msg
+    schedule = Parser.get_today_schedule(group_number, week % 2, Parser.number_to_weekday(day))
+
+    message_to_user = MessageToUser.translate('Держите ваше расписание на завтра\n',
+                                              message.from_user.language_code)
+
+    schedule = message_to_user + schedule
     await bot.send_message(chat_id=message.from_user.id,
-                           text=msg, parse_mode='HTML',
-                           reply_markup=Keyboards.get_cancel_kb())
+                           text=schedule, parse_mode='HTML',
+                           reply_markup=Keyboards.get_cancel_kb(message.from_user.language_code))
 
 
-@dp.message_handler(lambda message: message.text == 'Вернуться назад  ↩️',
+@dp.message_handler(lambda message: message.text == MessageToUser.translate('Вернуться назад  ↩️', message.from_user.language_code),
                     state=StudentGroupState.final)
 async def cmd_cancel(message: types.Message, state: FSMContext) -> None:
     """
@@ -243,12 +264,17 @@ async def cmd_cancel(message: types.Message, state: FSMContext) -> None:
         message (types.Message): message from user
         state (FSMContext): state of user
     """
+    message_to_user = MessageToUser.translate('Вы вернулись в главное меню',
+                                              message.from_user.language_code)
     await bot.send_message(chat_id=message.from_user.id,
-                           text='Вы вернулись в главное меню',
-                           reply_markup=Keyboards.get_start_kb())
+                           text=message_to_user,
+                           reply_markup=Keyboards.get_start_kb(message.from_user.language_code))
+
+    message_to_user = MessageToUser.translate('Для получения расписания введите номер вашей учебной группы',
+                                              message.from_user.language_code)
     await bot.send_message(chat_id=message.from_user.id,
-                           text='Для получения расписания введите номер вашей учебной группы',
-                           reply_markup=Keyboards.get_start_kb())
+                           text=message_to_user,
+                           reply_markup=Keyboards.get_start_kb(message.from_user.language_code))
     await set_state(state, 'processing', message)
 
 
@@ -268,9 +294,12 @@ async def handle_number(message: types.Message, state: FSMContext) -> None:
         data['group'] = message.text
 
     await db.edit_user_group(state, username=message.from_user.username)
+
+    message_to_user = MessageToUser.translate('Выберите опцию!',
+                                              message.from_user.language_code)
     await bot.send_message(chat_id=message.from_user.id,
-                           text='Выберите опцию',
-                           reply_markup=Keyboards.get_cancel_kb())
+                           text=message_to_user,
+                           reply_markup=Keyboards.get_cancel_kb(message.from_user.language_code))
     await set_state(state, 'final', message)
 
 
@@ -285,9 +314,10 @@ async def handle_wrong_number(message: types.Message, state: FSMContext) -> None
         message (types.Message): message from user
         state (FSMContext): state of user
     """
-    await message.reply(text='Неверный номер группы!\n'
-                             'Повторите попытку',
-                        reply_markup=Keyboards.get_start_kb())
+    message_to_user = MessageToUser.translate('Неверный номер группы!\nПовторите попытку',
+                                              message.from_user.language_code)
+    await message.reply(text=message_to_user,
+                        reply_markup=Keyboards.get_start_kb(message.from_user.language_code))
 
 
 @dp.message_handler(state=StudentGroupState.final)
@@ -300,9 +330,11 @@ async def handle_message_while_final(message: types.Message, state: FSMContext) 
         message (types.Message): message from user
         state (FSMContext): state of user
     """
+    message_to_user = MessageToUser.translate('Выберите опцию!',
+                                              message.from_user.language_code)
     await bot.send_message(chat_id=message.from_user.id,
-                           text='Выберите опцию!',
-                           reply_markup=Keyboards.get_cancel_kb())
+                           text=message_to_user,
+                           reply_markup=Keyboards.get_cancel_kb(message.from_user.language_code))
 
 
 @dp.message_handler(state=StudentGroupState.processing)
@@ -315,8 +347,10 @@ async def handle_message_while_processing(message: types.Message, state: FSMCont
         message (types.Message): message from user
         state (FSMContext): state of user
     """
-    await message.reply(text='Выберите одну из предложенных опций',
-                        reply_markup=Keyboards.get_start_kb())
+    message_to_user = MessageToUser.translate('Выберите опцию!',
+                                              message.from_user.language_code)
+    await message.reply(text=message_to_user,
+                        reply_markup=Keyboards.get_start_kb(message.from_user.language_code))
 
 
 def run_server():

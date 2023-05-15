@@ -1,15 +1,13 @@
-"""User Interface module"""
+"""User Interface module."""
 import gettext
 
 
 class MessageToUser:
-    """
-    Performs translation of message into user's language - en/ru
-    """
+    """Performs translation of message into user's language - en/ru."""
+
     @staticmethod
     def _translate_into_language(message: str, _) -> str:
-        """
-        Private method that helps gettext to find patterns to translate
+        """Private method that helps gettext to find patterns to translate.
 
         Args:
             message (str): message to user
@@ -37,8 +35,7 @@ class MessageToUser:
 
     @staticmethod
     def translate(message: str, language: str) -> str:
-        """
-        Translates message into user's language
+        """Translates message into user's language.
 
         Args:
             message (str): message to user

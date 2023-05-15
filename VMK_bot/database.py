@@ -1,21 +1,20 @@
-"""Database module for Schedule Telegram bot"""
+"""Database module for Schedule Telegram bot."""
 
 import sqlite3 as sq
 from aiogram.dispatcher import FSMContext
 
 
 class Database:
-    """
-    Singleton database class
-    """
+    """Singleton database class."""
 
     def __new__(cls):
+        """Method new."""
         if not hasattr(cls, 'instance'):
             cls.instance = super().__new__(cls)
         return cls.instance
 
     def connect(self) -> None:
-        """Method to connect to database"""
+        """Method to connect to database."""
         if not hasattr(self, 'db'):
             self.db = sq.connect('users.db')
             self.cur = self.db.cursor()
@@ -31,22 +30,19 @@ class Database:
         self.db.commit()
 
     def update_schedule(self, group_number: str, parity: bool, table_entry: list[str]) -> None:
-        """
-        Method to update table schedule with new entry
+        """Method to update table schedule with new entry.
 
         Args:
             group_number (str): user's group
             parity (bool): parity of the week
             table_entry (list[str]): list of schedules for each day in a week
         """
-
         self.cur.execute('INSERT INTO schedule VALUES(?, ?, ?, ?, ?, ?, ?, ?)',
                          (group_number, parity, *table_entry))
         self.db.commit()
 
     def get_valid_groups(self) -> list[str]:
-        """
-        Method to get valid groups
+        """Method to get valid groups.
 
         Returns:
             list[str]
@@ -55,8 +51,7 @@ class Database:
         return [group[0] for group in groups]
 
     def get_schedule(self, group_number: str, parity: bool, weekday: str) -> str:
-        """
-        Method to get schedule by group_number, parity of week and weekday
+        """Method to get schedule by group_number, parity of week and weekday.
 
         Args:
             group_number (str): user's group
@@ -70,8 +65,7 @@ class Database:
         return schedule[0]
 
     def add_user(self, username: str) -> None:
-        """
-        Method to add a new user
+        """Method to add a new user.
 
         Args:
             username (str): username
@@ -82,8 +76,7 @@ class Database:
             self.db.commit()
 
     async def edit_user_group(self, state: FSMContext, username: str) -> None:
-        """
-        Method to edit user's group
+        """Method to edit user's group.
 
         Args:
             state (FSMContext): user's state
@@ -95,8 +88,7 @@ class Database:
             self.db.commit()
 
     async def edit_user_state(self, state: FSMContext, username: str) -> None:
-        """
-        Method to edit user's state
+        """Method to edit user's state.
 
         Args:
             state (FSMContext): user's state
@@ -107,8 +99,7 @@ class Database:
             self.db.commit()
 
     def get_user_state(self, username: str) -> str:
-        """
-        Method to get user's state
+        """Method to get user's state.
 
         Args:
             username (str): username
@@ -121,8 +112,7 @@ class Database:
         return state[0]
 
     def get_user_group(self, username: str) -> str:
-        """
-        Method to get user's group
+        """Method to get user's group.
 
         Args:
             username (str): username
@@ -135,13 +125,14 @@ class Database:
         return state[0]
 
     def add_hash(self, my_hash: str) -> bool:
-        """
-        Method to add a new hash
+        """Method to add a new hash.
 
         Args:
             my_hash (str): hash to store in database
+
         Returns:
             bool: True if my_hash is in database. Otherwise False
+
         """
         user = self.cur.execute('SELECT hash FROM hashes WHERE hash=="{}"'.format(my_hash)).fetchone()
         if not user:

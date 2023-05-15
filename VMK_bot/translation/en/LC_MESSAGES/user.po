@@ -7,70 +7,82 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2023-05-09 17:46+0300\n"
+"POT-Creation-Date: 2023-05-15 21:11+0300\n"
 "PO-Revision-Date: 2023-05-09 17:46+0300\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: en\n"
 "Language-Team: en <LL@li.org>\n"
-"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"Plural-Forms: nplurals=2; plural=(n != 1)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.12.1\n"
+"Generated-By: Babel 2.9.1\n"
 
-#: VMK_bot/messageUI.py:20
+#: VMK_bot/messageUI.py:18
 msgid "Вы превысили лимит сообщений. Подождите"
 msgstr "You have exceeded the message limit. Wait"
 
-#: VMK_bot/messageUI.py:21
-msgid "Добро пожаловать!\nЯ бот, отправляющий расписание ВМК"
-msgstr "Welcome!\nI am a bot created to send you CMC schedule"
+#: VMK_bot/messageUI.py:19
+msgid ""
+"Добро пожаловать!\n"
+"Я бот, отправляющий расписание ВМК"
+msgstr ""
+"Welcome!\n"
+"I am a bot created to send you CMC schedule"
 
-#: VMK_bot/messageUI.py:22
+#: VMK_bot/messageUI.py:20
 msgid "Для получения расписания введите номер вашей учебной группы"
 msgstr "Please enter your class number to receive the schedule"
 
-#: VMK_bot/messageUI.py:23
-msgid "/start - начать работу с ботом\n/help - получить подсказки по командам"
-msgstr "/start - start working with the bot\n/help - get hints on commands"
+#: VMK_bot/messageUI.py:21
+msgid ""
+"/start - начать работу с ботом\n"
+"/help - получить подсказки по командам"
+msgstr ""
+"/start - start working with the bot\n"
+"/help - get hints on commands"
 
-#: VMK_bot/messageUI.py:24
+#: VMK_bot/messageUI.py:22
 msgid "Держите ваше расписание на сегодня\n"
 msgstr "Here your schedule for today\n"
 
-#: VMK_bot/messageUI.py:25
+#: VMK_bot/messageUI.py:23
 msgid "Держите ваше расписание на неделю\n"
 msgstr "Here your schedule for this week\n"
 
-#: VMK_bot/messageUI.py:26
+#: VMK_bot/messageUI.py:24
 msgid "Держите ваше расписание на завтра\n"
 msgstr "Here your schedule for tomorrow\n"
 
-#: VMK_bot/messageUI.py:27
+#: VMK_bot/messageUI.py:25
 msgid "Вы вернулись в главное меню"
 msgstr "You have returned to the main menu"
 
-#: VMK_bot/messageUI.py:28
+#: VMK_bot/messageUI.py:26
 msgid "Выберите опцию!"
 msgstr "Choose an option!"
 
-#: VMK_bot/messageUI.py:29
-msgid "Неверный номер группы!\nПовторите попытку"
-msgstr "Invalid group number!\nTry again"
+#: VMK_bot/messageUI.py:27
+msgid ""
+"Неверный номер группы!\n"
+"Повторите попытку"
+msgstr ""
+"Invalid group number!\n"
+"Try again"
 
-#: VMK_bot/messageUI.py:30
+#: VMK_bot/messageUI.py:28
 msgid "Расписание на сегодня  ▶️"
 msgstr "Today schedule  ▶️"
 
-#: VMK_bot/messageUI.py:31
+#: VMK_bot/messageUI.py:29
 msgid "Расписание на завтра  ⏩"
 msgstr "Tomorrow schedule  ⏩"
 
-#: VMK_bot/messageUI.py:32
+#: VMK_bot/messageUI.py:30
 msgid "Расписание на неделю  ⏭"
 msgstr "Week schedule  ⏭"
 
-#: VMK_bot/messageUI.py:33
+#: VMK_bot/messageUI.py:31
 msgid "Вернуться назад  ↩️"
 msgstr "Return to menu  ↩️"
 

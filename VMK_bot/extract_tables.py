@@ -1,4 +1,4 @@
-"""Script to extract tables from pdf to json"""
+"""Script to extract tables from pdf to json."""
 
 from .pdf_parser import Parser
 import glob
@@ -7,6 +7,7 @@ import hashlib
 
 
 def setup():
+    """Extracts data from the pdf tables."""
     db = Database()
     db.connect()
 

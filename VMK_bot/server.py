@@ -1,4 +1,4 @@
-"""Server side for Schedule Telegram bot"""
+"""Server side for Schedule Telegram bot."""
 
 import asyncio
 from VMK_bot.messageUI import MessageToUser
@@ -23,9 +23,7 @@ db = Database()
 
 
 class StudentGroupState(StatesGroup):
-    """
-    FSM (Finite State Machine) of user's states
-    and transitions between them
+    """FSM (Finite State Machine) of user's states and transitions between them.
 
     Args:
         processing (State): initial state where user can send group number
@@ -33,6 +31,7 @@ class StudentGroupState(StatesGroup):
                       changing the group number or choose to look at today/week schedule
         STATES (dict['str':State]): "map" between string repr of state and its actual mark
     """
+
     processing = State()
     final = State()
 
@@ -43,16 +42,15 @@ class StudentGroupState(StatesGroup):
 
 
 class StateMiddleware(BaseMiddleware):
-    """
-    State's Middleware (stage between request is sent to bot and its actual processing by handler)
+    """State's Middleware (stage between request is sent to bot and its actual processing by handler).
+
     Puts user's FSM in the state where user left it
     This concept makes bot independent of shutdowns on its side
     """
 
     @staticmethod
     async def on_pre_process_message(message: types.Message, data: dict) -> None:
-        """
-        Method to set user's FSM in the last state
+        """Method to set user's FSM in the last state.
 
         Args:
             message (types.Message): message from user
@@ -65,13 +63,10 @@ class StateMiddleware(BaseMiddleware):
 
 
 class ThrottlingMiddleware(BaseMiddleware):
-    """
-    Antiflood Middleware
-    """
+    """Antiflood Middleware."""
 
     def __init__(self, rate_limit: int = 0.5):
-        """
-        Initializes the object's attributes
+        """Initializes the object's attributes.
 
         Args:
             rate_limit (int): limit (in seconds) for messages/second
@@ -80,8 +75,7 @@ class ThrottlingMiddleware(BaseMiddleware):
         self.rate_limit = rate_limit
 
     async def on_process_message(self, message: types.Message, data: dict) -> None:
-        """
-        Method to interrupt processing new message if limit exceeded
+        """Method to interrupt processing new message if limit exceeded.
 
         Args:
             message (types.Message): message from user
@@ -97,8 +91,7 @@ class ThrottlingMiddleware(BaseMiddleware):
 
     @staticmethod
     async def msg_throttle(message: types.Message, throttled: Throttled) -> None:
-        """
-        Method to send a message to user that he's exceeded limit for messages
+        """Method to send a message to user that he's exceeded limit for messages.
 
         Args:
             message (types.Message): message from user
@@ -113,8 +106,8 @@ class ThrottlingMiddleware(BaseMiddleware):
 
 
 async def on_startup(_) -> None:
-    """
-    Executes on bot's startup
+    """Executes on bot's startup.
+
     Should connect to the users database
     """
     db.connect()
@@ -122,8 +115,7 @@ async def on_startup(_) -> None:
 
 
 async def set_state(state: FSMContext, new_state: str, message: types.Message) -> None:
-    """
-    Sets FSM in a specific state
+    """Sets FSM in a specific state.
 
     Args:
         state (FSMContext): significant to open proxy and write state into it
@@ -139,8 +131,8 @@ async def set_state(state: FSMContext, new_state: str, message: types.Message) -
 
 @dp.message_handler(commands=['start'], state='*')
 async def cmd_start(message: types.Message, state: FSMContext) -> None:
-    """
-    Handler of command 'start' from user in any state
+    """Handler of command 'start' from user in any state.
+
     Sends start message to user
 
     Args:
@@ -165,8 +157,8 @@ async def cmd_start(message: types.Message, state: FSMContext) -> None:
 
 @dp.message_handler(commands=['help'], state='*')
 async def cmd_help(message: types.Message) -> None:
-    """
-    Handler of command 'help' from user in any state
+    """Handler of command 'help' from user in any state.
+
     Sends help message to user
 
     Args:
@@ -181,8 +173,8 @@ async def cmd_help(message: types.Message) -> None:
 @dp.message_handler(lambda message: message.text == MessageToUser.translate('Расписание на сегодня  ▶️', message.from_user.language_code),
                     state=StudentGroupState.final)
 async def cmd_today_schedule(message: types.Message, state: FSMContext) -> None:
-    """
-    Handler of command today_schedule from user in final state
+    """Handler of command today_schedule from user in final state.
+
     Sends today's schedule to user
 
     Args:
@@ -206,8 +198,8 @@ async def cmd_today_schedule(message: types.Message, state: FSMContext) -> None:
 @dp.message_handler(lambda message: message.text == MessageToUser.translate('Расписание на неделю  ⏭', message.from_user.language_code),
                     state=StudentGroupState.final)
 async def cmd_week_schedule(message: types.Message, state: FSMContext) -> None:
-    """
-    Handler of command week_schedule from user in final state
+    """Handler of command week_schedule from user in final state.
+
     Sends week's schedule to user
 
     Args:
@@ -230,8 +222,8 @@ async def cmd_week_schedule(message: types.Message, state: FSMContext) -> None:
 @dp.message_handler(lambda message: message.text == MessageToUser.translate('Расписание на завтра  ⏩', message.from_user.language_code),
                     state=StudentGroupState.final)
 async def cmd_tomorrow_schedule(message: types.Message, state: FSMContext) -> None:
-    """
-    Handler of command tomorrow_schedule from user in final state
+    """Handler of command tomorrow_schedule from user in final state.
+
     Sends tomorrow's schedule to user
 
     Args:
@@ -256,8 +248,8 @@ async def cmd_tomorrow_schedule(message: types.Message, state: FSMContext) -> No
 @dp.message_handler(lambda message: message.text == MessageToUser.translate('Вернуться назад  ↩️', message.from_user.language_code),
                     state=StudentGroupState.final)
 async def cmd_cancel(message: types.Message, state: FSMContext) -> None:
-    """
-    Handler of command return_to_menu from user in final state
+    """Handler of command return_to_menu from user in final state.
+
     Sets FSM to initial state
 
     Args:
@@ -281,8 +273,8 @@ async def cmd_cancel(message: types.Message, state: FSMContext) -> None:
 @dp.message_handler(lambda message: message.text in db.get_valid_groups(),
                     state=StudentGroupState.processing)
 async def handle_number(message: types.Message, state: FSMContext) -> None:
-    """
-    Handler of group number from user in initial state
+    """Handler of group number from user in initial state.
+
     Stores number in state.proxy, edits database with new group for user,
     sets FSM to final state and sends Option Keyboard to user
 
@@ -306,8 +298,8 @@ async def handle_number(message: types.Message, state: FSMContext) -> None:
 @dp.message_handler(lambda message: message.text not in db.get_valid_groups(),
                     state=StudentGroupState.processing)
 async def handle_wrong_number(message: types.Message, state: FSMContext) -> None:
-    """
-    Handler of wrong group number from user in initial state
+    """Handler of wrong group number from user in initial state.
+
     Replies to user's message notifying that it's a wrong number
 
     Args:
@@ -322,8 +314,8 @@ async def handle_wrong_number(message: types.Message, state: FSMContext) -> None
 
 @dp.message_handler(state=StudentGroupState.final)
 async def handle_message_while_final(message: types.Message, state: FSMContext) -> None:
-    """
-    Handler of any message from user in final state
+    """Handler of any message from user in final state.
+
     Returns message that this is a wrong command and option is needed to be chosen
 
     Args:
@@ -339,8 +331,8 @@ async def handle_message_while_final(message: types.Message, state: FSMContext) 
 
 @dp.message_handler(state=StudentGroupState.processing)
 async def handle_message_while_processing(message: types.Message, state: FSMContext) -> None:
-    """
-    Handler of any message from user in initial state
+    """Handler of any message from user in initial state.
+
     Replies that this is a wrong command and suggested option was expected
 
     Args:
@@ -354,6 +346,7 @@ async def handle_message_while_processing(message: types.Message, state: FSMCont
 
 
 def run_server():
+    """Runs server logic."""
     dp.middleware.setup(StateMiddleware())
     dp.middleware.setup(ThrottlingMiddleware())
 

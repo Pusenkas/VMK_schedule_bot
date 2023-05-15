@@ -1,3 +1,5 @@
+"""Main for module."""
+
 from . import server
 from . import extract_tables
 

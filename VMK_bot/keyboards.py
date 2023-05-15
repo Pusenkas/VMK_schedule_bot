@@ -1,17 +1,15 @@
-"""Keyboards module for Schedule Telegram bot"""
+"""Keyboards module for Schedule Telegram bot."""
 
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 from VMK_bot.messageUI import MessageToUser
 
 
 class Keyboards:
-    """
-    Class of keyboards for user
-    """
+    """Class of keyboards for user."""
+
     @staticmethod
     def get_start_kb(language: str) -> ReplyKeyboardMarkup:
-        """
-        Returns initial keyboard
+        """Returns initial keyboard.
 
         Args:
             language (str): user's language
@@ -25,8 +23,7 @@ class Keyboards:
 
     @staticmethod
     def get_cancel_kb(language: str) -> ReplyKeyboardMarkup:
-        """
-        Returns keyboard for final state
+        """Returns keyboard for final state.
 
         Args:
             language (str): user's language

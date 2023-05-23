@@ -3,7 +3,7 @@
 import glob
 from doit.tools import create_folder
 
-DOIT_CONFIG = {'default_tasks': ['translation']}
+DOIT_CONFIG = {'default_tasks': ['wheel']}
 
 
 def task_html():
@@ -72,8 +72,16 @@ def task_check():
     }
 
 
+def task_wheel():
+    """Create binary wheel distribution."""
+    return {
+        'actions': ['python -m build -w'],
+        'task_dep': ['gitclean', 'translation'],
+    }
+
+
 def task_gitclean():
     """Clean repository."""
     return {
-        'actions': ['git clean -fdx -e VMK_bot/config.py']
+        'actions': ['git clean -xdf -e VMK_bot/config.py -e .doit.db.*']
     }

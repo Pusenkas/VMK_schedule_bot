@@ -1,0 +1,4 @@
+build==0.10.0
+doit==0.36.0
+pybabel==0.0.0.dev0
+Sphinx==7.0.1

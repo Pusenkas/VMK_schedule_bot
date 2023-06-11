@@ -76,7 +76,7 @@ def task_wheel():
     """Create binary wheel distribution."""
     return {
         'actions': ['python -m build -w'],
-        'task_dep': ['gitclean', 'translation'],
+        'task_dep': ['translation'],
     }
 
 

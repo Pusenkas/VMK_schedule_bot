@@ -17,7 +17,7 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 
-dependencies = ["aiogram", "camelot"]
+dependencies = ["aiogram", "camelot-py", "opencv-python"]
 
 [build-system]
 # TODO dynamic from Pipfile
@@ -26,3 +26,6 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.package-dir]
 VMK_bot = "VMK_bot"
+
+[tool.setuptools.package-data]
+VMK_bot = ["VMK_bot/translation/en/*/*.mo"]

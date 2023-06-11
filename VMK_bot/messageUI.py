@@ -1,6 +1,6 @@
 """User Interface module."""
 import gettext
-
+import os
 
 class MessageToUser:
     """Performs translation of message into user's language - en/ru."""
@@ -43,7 +43,8 @@ class MessageToUser:
         Returns:
             str
         """
-        translation = gettext.translation('user', 'VMK_bot/translation', languages=[language], fallback=True)
+        translation_path = os.path.join(os.path.dirname(__file__), 'translation')
+        translation = gettext.translation('user', translation_path, languages=[language], fallback=True)
         _ = translation.gettext
 
         return MessageToUser._translate_into_language(message, _)

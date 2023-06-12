@@ -188,7 +188,7 @@ async def cmd_today_schedule(message: types.Message, state: FSMContext) -> None:
 
     if day != 6:
         message_to_user = MessageToUser.translate('Держите ваше расписание на сегодня\n',
-                                              message.from_user.language_code)
+                                                  message.from_user.language_code)
     else:
         message_to_user = ""
 
@@ -241,7 +241,7 @@ async def cmd_tomorrow_schedule(message: types.Message, state: FSMContext) -> No
 
     if day != 6:
         message_to_user = MessageToUser.translate('Держите ваше расписание на завтра\n',
-                                              message.from_user.language_code)
+                                                  message.from_user.language_code)
     else:
         message_to_user = ""
 

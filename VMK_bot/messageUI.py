@@ -2,6 +2,7 @@
 import gettext
 import os
 
+
 class MessageToUser:
     """Performs translation of message into user's language - en/ru."""
 

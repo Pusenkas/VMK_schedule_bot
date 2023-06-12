@@ -5,6 +5,7 @@ import shlex
 from VMK_bot.database import Database
 import json
 from datetime import datetime
+from VMK_bot.messageUI import MessageToUser
 
 
 class Lesson:
@@ -188,13 +189,14 @@ class Parser:
         return marked
 
     @staticmethod
-    def get_today_schedule(group_number: str, parity: bool, weekday: str) -> str:
+    def get_today_schedule(group_number: str, parity: bool, weekday: str, language: str) -> str:
         """Returns today's schedule for user.
 
         Args:
             group_number (str): user's group
             parity (bool): parity of the week
             weekday (str): day of the week
+            language (str): user's language
         Returns:
             str
         """
@@ -208,15 +210,16 @@ class Parser:
         tomorrow = Parser.number_to_weekday(datetime.today().weekday()) != weekday  # True if this request not for today
         today_schedule = Parser.mark_day_schedule(json.loads(today_schedule), tomorrow=tomorrow)
 
-        return '\n'.join([f'<b>{weekday}</b>'] + today_schedule)
+        return '\n'.join([f'<b>{MessageToUser.translate(weekday, language)}</b>'] + today_schedule)
 
     @staticmethod
-    def get_week_schedule(group_number: str, parity: bool) -> str:
+    def get_week_schedule(group_number: str, parity: bool, language: str) -> str:
         """Returns week's schedule for user.
 
         Args:
             group_number (str): user's group
             parity (bool): parity of the week
+            language (str): user's language
         Returns:
             str
         """
@@ -228,7 +231,7 @@ class Parser:
             schedule_list = db.get_schedule(group_number, parity, weekday)
             schedule_list = json.loads(schedule_list)
 
-            day_schedule = f'<b>{weekday}</b>\n'
+            day_schedule = f'<b>{MessageToUser.translate(weekday, language)}</b>\n'
             for i, lesson in enumerate(schedule_list, 1):
                 _, start_time, end_time, description = shlex.split(lesson)
                 if description:

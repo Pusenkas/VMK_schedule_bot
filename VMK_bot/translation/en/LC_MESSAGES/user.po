@@ -86,3 +86,31 @@ msgstr "Week schedule  ⏭"
 msgid "Вернуться назад  ↩️"
 msgstr "Return to menu  ↩️"
 
+#: VMK_bot/messageUI.py:32
+msgid "Не волнуйтесь, это воскресенье 🥳"
+msgstr "Don't worry! It's Sunday 🥳"
+
+#: VMK_bot/messageUI.py:33
+msgid "Понедельник"
+msgstr "Monday"
+
+#: VMK_bot/messageUI.py:34
+msgid "Вторник"
+msgstr "Tuesday"
+
+#: VMK_bot/messageUI.py:35
+msgid "Среда"
+msgstr "Wednesday"
+
+#: VMK_bot/messageUI.py:36
+msgid "Четверг"
+msgstr "Thursday"
+
+#: VMK_bot/messageUI.py:37
+msgid "Пятница"
+msgstr "Friday"
+
+#: VMK_bot/messageUI.py:38
+msgid "Суббота"
+msgstr "Saturday"
+

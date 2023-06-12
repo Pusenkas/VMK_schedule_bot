@@ -184,12 +184,15 @@ async def cmd_today_schedule(message: types.Message, state: FSMContext) -> None:
     week = datetime.datetime.today().isocalendar()[1]
     day = datetime.datetime.today().weekday()
     group_number = db.get_user_group(message.from_user.username)
-    schedule = Parser.get_today_schedule(group_number, week % 2, Parser.number_to_weekday(day))
+    schedule = Parser.get_today_schedule(group_number, week % 2, Parser.number_to_weekday(day), message.from_user.language_code)
 
-    message_to_user = MessageToUser.translate('Держите ваше расписание на сегодня\n',
+    if day != 6:
+        message_to_user = MessageToUser.translate('Держите ваше расписание на сегодня\n',
                                               message.from_user.language_code)
+    else:
+        message_to_user = ""
 
-    schedule = message_to_user + schedule
+    schedule = message_to_user + MessageToUser.translate(schedule, message.from_user.language_code)
     await bot.send_message(chat_id=message.from_user.id,
                            text=schedule, parse_mode='HTML',
                            reply_markup=Keyboards.get_cancel_kb(message.from_user.language_code))
@@ -208,12 +211,12 @@ async def cmd_week_schedule(message: types.Message, state: FSMContext) -> None:
     """
     week = datetime.datetime.today().isocalendar()[1]
     group_number = db.get_user_group(message.from_user.username)
-    schedule = Parser.get_week_schedule(group_number, week % 2)
+    schedule = Parser.get_week_schedule(group_number, week % 2, message.from_user.language_code)
 
     message_to_user = MessageToUser.translate('Держите ваше расписание на неделю\n',
                                               message.from_user.language_code)
 
-    schedule = message_to_user + schedule
+    schedule = message_to_user + MessageToUser.translate(schedule, message.from_user.language_code)
     await bot.send_message(chat_id=message.from_user.id,
                            text=schedule, parse_mode='HTML',
                            reply_markup=Keyboards.get_cancel_kb(message.from_user.language_code))
@@ -234,12 +237,15 @@ async def cmd_tomorrow_schedule(message: types.Message, state: FSMContext) -> No
     week = tomorrow.isocalendar()[1]
     day = tomorrow.weekday()
     group_number = db.get_user_group(message.from_user.username)
-    schedule = Parser.get_today_schedule(group_number, week % 2, Parser.number_to_weekday(day))
+    schedule = Parser.get_today_schedule(group_number, week % 2, Parser.number_to_weekday(day), message.from_user.language_code)
 
-    message_to_user = MessageToUser.translate('Держите ваше расписание на завтра\n',
+    if day != 6:
+        message_to_user = MessageToUser.translate('Держите ваше расписание на завтра\n',
                                               message.from_user.language_code)
+    else:
+        message_to_user = ""
 
-    schedule = message_to_user + schedule
+    schedule = message_to_user + MessageToUser.translate(schedule, message.from_user.language_code)
     await bot.send_message(chat_id=message.from_user.id,
                            text=schedule, parse_mode='HTML',
                            reply_markup=Keyboards.get_cancel_kb(message.from_user.language_code))
@@ -353,7 +359,3 @@ def run_server():
     executor.start_polling(dispatcher=dp,
                            skip_updates=True,
                            on_startup=on_startup)
-
-
-if __name__ == '__main__':
-    run_server()

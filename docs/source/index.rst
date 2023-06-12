@@ -6,7 +6,8 @@
 Welcome to VMK_schedule_bot's documentation!
 ============================================
 
-Добро пожаловать!!
+This project is a telegram bot that sends the VMK schedule. 
+It is also able to send any schedule represented in pdf format that has the same structure as the VMK schedule.
 
 .. toctree::
    :maxdepth: 2

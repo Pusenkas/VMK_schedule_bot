@@ -2,6 +2,7 @@
 **/__pycache__/
 /docs/build
 /venv/
-/users.db
+*.db
 *.pot
 *.mo
+*.doit*

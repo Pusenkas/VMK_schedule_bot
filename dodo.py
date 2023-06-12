@@ -9,7 +9,7 @@ DOIT_CONFIG = {'default_tasks': ['wheel']}
 def task_html():
     """Make HTML documentation."""
     return {
-        'actions': ['docs\make.bat html'],
+        'actions': ['sphinx-build docs/source docs/build'],
     }
 
 
